@@ -544,7 +544,8 @@ export async function getAnalitikaRadniNalozi(
   const tableRows: NalogTableRow[] = list.map((row) => {
     const dr = firstRow(row.draziranje)
     if (dr?.dobavljac) bySupplier.set(String(dr.dobavljac), (bySupplier.get(String(dr.dobavljac)) ?? 0) + 1)
-    const drRadnik = dr && "radnik" in dr ? (Array.isArray((dr as { radnik?: unknown }).radnik) ? (dr as { radnik: { ime?: string; prezime?: string }[] }).radnik[0] : (dr as { radnik: { ime?: string; prezime?: string } }).radnik) : null
+    const drRadnikRaw = dr && (dr as Record<string, unknown>).radnik
+    const drRadnik = drRadnikRaw == null ? null : Array.isArray(drRadnikRaw) ? (drRadnikRaw as { ime?: string; prezime?: string }[])[0] : (drRadnikRaw as { ime?: string; prezime?: string })
     const radnikName = drRadnik
       ? `${String(drRadnik.ime ?? "").trim()} ${String(drRadnik.prezime ?? "").trim()}`.trim()
       : ""
