@@ -59,7 +59,7 @@ async function getNalozi(searchParams: SearchParams) {
 
   const { data, error } = await query
   if (error) throw error
-  return (data ?? []) as NalogRow[]
+  return (data ?? []) as unknown as NalogRow[]
 }
 
 type NalogRow = {
@@ -84,7 +84,10 @@ type NalogRow = {
 
 function radniciDisplay(rows: NalogRow["work_order_employees"]): string {
   const names = rows
-    ?.map((r) => r.employee && `${r.employee.ime} ${r.employee.prezime}`)
+    ?.map((r) => {
+      const emp = Array.isArray(r.employee) ? r.employee[0] : r.employee
+      return emp ? `${emp.ime} ${emp.prezime}` : null
+    })
     .filter(Boolean) as string[]
   if (!names?.length) return "—"
   if (names.length <= 2) return names.join(", ")
