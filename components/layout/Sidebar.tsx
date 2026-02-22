@@ -31,7 +31,7 @@ export async function Sidebar() {
 
   return (
     <aside
-      className="fixed left-0 top-0 z-30 flex h-screen w-[220px] flex-col border-r border-[#E5E7EB] bg-[#FFFFFF]"
+      className="flex h-full w-full min-w-[220px] flex-col border-r border-[#E5E7EB] bg-[#FFFFFF]"
       style={{ width: "220px" }}
     >
       {/* Logo sekcija */}

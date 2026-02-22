@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation"
 import { getCurrentUser } from "@/lib/auth/user"
 import { Sidebar } from "@/components/layout/Sidebar"
+import { DashboardShell } from "@/components/layout/DashboardShell"
 
 export default async function DashboardLayout({
   children,
@@ -12,13 +13,7 @@ export default async function DashboardLayout({
 
   return (
     <div className="min-h-screen bg-[#F4F5F7]">
-      <Sidebar />
-      <main
-        className="min-h-screen"
-        style={{ marginLeft: "220px", padding: "32px" }}
-      >
-        {children}
-      </main>
+      <DashboardShell sidebarSlot={<Sidebar />} contentSlot={children} />
     </div>
   )
 }
