@@ -526,7 +526,7 @@ export async function getAnalitikaRadniNalozi(
     query = query.eq("smena", params.smena)
   }
   const { data } = await query
-  const list = (data ?? []) as Array<{
+  const list = (data ?? []) as unknown as Array<{
     id: string
     broj_naloga: string
     datum: string
@@ -543,9 +543,10 @@ export async function getAnalitikaRadniNalozi(
   const draziranjeByWorker = new Map<string, number>()
   const tableRows: NalogTableRow[] = list.map((row) => {
     const dr = firstRow(row.draziranje)
-    if (dr?.dobavljac) bySupplier.set(dr.dobavljac, (bySupplier.get(dr.dobavljac) ?? 0) + 1)
-    const radnikName = dr?.radnik
-      ? `${String(dr.radnik.ime ?? "").trim()} ${String(dr.radnik.prezime ?? "").trim()}`.trim()
+    if (dr?.dobavljac) bySupplier.set(String(dr.dobavljac), (bySupplier.get(String(dr.dobavljac)) ?? 0) + 1)
+    const drRadnik = dr && "radnik" in dr ? (Array.isArray((dr as { radnik?: unknown }).radnik) ? (dr as { radnik: { ime?: string; prezime?: string }[] }).radnik[0] : (dr as { radnik: { ime?: string; prezime?: string } }).radnik) : null
+    const radnikName = drRadnik
+      ? `${String(drRadnik.ime ?? "").trim()} ${String(drRadnik.prezime ?? "").trim()}`.trim()
       : ""
     if (radnikName && dr.broj_draziranja != null) {
       draziranjeByWorker.set(radnikName, (draziranjeByWorker.get(radnikName) ?? 0) + Number(dr.broj_draziranja))
@@ -553,7 +554,10 @@ export async function getAnalitikaRadniNalozi(
     const pak = firstRow(row.pakovanje)
     const t = calculateTotalKg(pak ?? null)
     const radnici = (row.work_order_employees ?? [])
-      .map((e) => e.employee && `${e.employee.ime} ${e.employee.prezime}`)
+      .map((e) => {
+        const emp = Array.isArray(e.employee) ? e.employee[0] : e.employee
+        return emp ? `${String(emp.ime ?? "").trim()} ${String(emp.prezime ?? "").trim()}`.trim() : null
+      })
       .filter(Boolean)
       .join(", ")
     return {
