@@ -37,7 +37,7 @@ function requirePodesavanjaEdit() {
 
 /** Doda redove u user_roles i user_permissions za auth korisnike koji ih nemaju (npr. kreirani kad je insert pao). */
 async function syncMissingUserRoles(admin: ReturnType<typeof createAdminClient>) {
-  const { data: authList } = await admin.auth.admin.listUsers({ per_page: 1000 })
+  const { data: authList } = await admin.auth.admin.listUsers({ perPage: 1000 })
   const authUsers = authList?.users ?? []
   if (authUsers.length === 0) return
 
