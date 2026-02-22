@@ -1,0 +1,50 @@
+# ERP Sistem — Core Rules
+
+## Tech Stack
+- Next.js 14+ App Router, TypeScript (uvek, nikad `any`)
+- Tailwind CSS + shadcn/ui (ne uvodi druge UI biblioteke)
+- Supabase (Auth + PostgreSQL + RLS)
+- Zod + react-hook-form (validacija svih formi)
+- Recharts (grafikoni), jsPDF (export)
+
+## Struktura Foldera
+```
+/app/[modul]/       → stranice (Server Components po defaultu)
+/components/[modul] → komponente specifične za modul
+/components/shared  → zajedničke komponente
+/lib/supabase/      → svi Supabase pozivi (nikad direktno iz komponente)
+/lib/types/         → svi TypeScript interfejsi
+/hooks/             → custom React hooks
+/docs/              → projektna dokumentacija (čitaj kad je relevantno)
+```
+
+## Osnovna Pravila
+- Supabase pozivi uvek server-side (Server Actions ili Server Components)
+- `"use client"` samo kad je neophodno (interakcija, state)
+- Soft-delete uvek (`aktivan = false`), nikad hard-delete
+- Iznose uvek prikazuj kroz `formatCurrency()` — nikad sirovi broj
+- Tabele uvek imaju `.order()` u queriju
+
+## Imenovanje
+- Komponente: `PascalCase.tsx`
+- Funkcije/varijable: `camelCase`
+- Supabase tabele/kolone: `snake_case`
+- Route folderi: `kebab-case`
+
+## Jezik
+- UI tekst: Srpski (latinica)
+- Kod i varijable: Engleski
+- Komentari: Srpski
+
+## Stil i Tema
+- Aplikacija koristi samo svetlu temu — **nema dark mode**
+- Ne dodavaj `dark:` Tailwind klase
+- Ne dodavaj dark mode toggle switch
+
+## Dokumentacija — Pozovi po Potrebi
+- `@docs/db-schema.md` → kad radiš na bazi ili queriju
+- `@docs/ui-rules.md` → kad praviš bilo koji UI ekran (forme, toast, empty state, formatCurrency)
+- `@docs/design-system.md` → kad definišeš izgled komponente (boje, kontrast, bedži, tabele, kartice). Pri svakom novom UI materijalu pregledaj oba fajla.
+- `@docs/module-radnici.md` → kad radiš na modulu Radnici & Plate
+- `@docs/module-cashflow.md` → kad radiš na Cash Flow modulu
+- `@docs/module-proizvodnja.md` → kad radiš na modulu Proizvodnja
