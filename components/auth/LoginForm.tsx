@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -47,27 +47,12 @@ export function LoginForm({
   const [password, setPassword] = useState("")
   const [loading, setLoading] = useState(false)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
-  const [debugStep, setDebugStep] = useState<DebugStep>("")
-  const [lastDebug, setLastDebug] = useState<{ step: string; errorMsg: string | null } | null>(null)
   const { toast } = useToast()
-
-  useEffect(() => {
-    try {
-      const raw = sessionStorage.getItem(DEBUG_STORAGE_KEY)
-      if (raw) {
-        const { step, errorMsg } = JSON.parse(raw)
-        setLastDebug({ step, errorMsg })
-      }
-    } catch {
-      // ignore
-    }
-  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setLoading(true)
     setErrorMessage(null)
-    setDebugStep("1_submit_pozvan")
     saveDebug("1_submit_pozvan", null)
     appendLoginDebug("1_submit_pozvan", null, { username: username.trim() })
     console.log("[Login] 1. handleSubmit pozvan", { username: username.trim() })
@@ -83,21 +68,18 @@ export function LoginForm({
       const msg = "Supabase nije konfigurisan. Proverite .env.local (NEXT_PUBLIC_SUPABASE_URL i ANON_KEY)."
       console.error("[Login] Env nedostaje", { url: !!supabaseUrl, key: !!supabaseKey })
       setErrorMessage(msg)
-      setDebugStep("greska")
       saveDebug("greska", msg)
       appendLoginDebug("greska", msg, { reason: "env_missing" })
       setLoading(false)
       toast({ title: "Greška", description: msg, variant: "destructive" })
       return
     }
-    setDebugStep("2_env_ok")
     saveDebug("2_env_ok", null)
     appendLoginDebug("2_env_ok", null)
     console.log("[Login] 2. Env OK")
 
     try {
       const supabase = createClient()
-      setDebugStep("3_supabase_kreiran")
       saveDebug("3_supabase_kreiran", null)
       appendLoginDebug("3_supabase_kreiran", null)
       console.log("[Login] 3. Supabase client kreiran")
@@ -105,7 +87,6 @@ export function LoginForm({
       const { data: signInData, error: signInError } =
         await supabase.auth.signInWithPassword({ email, password })
 
-      setDebugStep("4_posle_signin")
       saveDebug("4_posle_signin", signInError?.message ?? null)
       appendLoginDebug("4_posle_signin", signInError?.message ?? null, {
         hasUser: !!signInData?.user,
@@ -118,7 +99,6 @@ export function LoginForm({
       if (signInError) {
         const msg = signInError.message || "Pogrešan username ili lozinka."
         setErrorMessage(msg)
-        setDebugStep("greska")
         saveDebug("greska", msg)
         appendLoginDebug("greska", msg, { signInError: signInError.message })
         setLoading(false)
@@ -129,7 +109,6 @@ export function LoginForm({
       if (!signInData?.user) {
         const msg = "Nije moguće dobiti podatke o korisniku."
         setErrorMessage(msg)
-        setDebugStep("greska")
         saveDebug("greska", msg)
         appendLoginDebug("greska", msg, { reason: "no_user" })
         setLoading(false)
@@ -147,7 +126,6 @@ export function LoginForm({
         // ne blokira login
       }
 
-      setDebugStep("5_uspeh_redirect")
       saveDebug("5_uspeh_redirect", null)
       appendLoginDebug("5_uspeh_redirect", null, { userId })
       try {
@@ -161,7 +139,6 @@ export function LoginForm({
       const msg = err instanceof Error ? err.message : "Neočekivana greška. Pokušajte ponovo."
       console.error("[Login] Izuzetak:", err)
       setErrorMessage(msg)
-      setDebugStep("greska")
       saveDebug("greska", msg)
       appendLoginDebug("greska", msg, {
         exception: String(err),
@@ -174,18 +151,6 @@ export function LoginForm({
 
   return (
     <Card className="w-full max-w-md border border-[#E5E7EB] bg-white shadow-sm rounded-xl">
-      {lastDebug && (
-        <div className="mx-4 mt-4 p-3 rounded-md bg-sky-50 border border-sky-200 text-sm">
-          <strong>Prošli pokušaj:</strong>{" "}
-          <span className="font-mono">{lastDebug.step}</span>
-          {lastDebug.errorMsg && (
-            <>
-              <br />
-              <span className="text-red-600">{lastDebug.errorMsg}</span>
-            </>
-          )}
-        </div>
-      )}
       <CardHeader className="text-center pb-2">
         <div className="w-14 h-14 bg-primary rounded-xl mx-auto mb-3 flex items-center justify-center">
           <span className="text-white text-xl font-bold">E</span>
@@ -230,11 +195,6 @@ export function LoginForm({
             <p className="text-sm text-[#B91C1C] bg-[#FEF2F2] border border-[#FECACA] rounded-md px-3 py-2">
               {errorMessage}
             </p>
-          )}
-          {debugStep && (
-            <div className="text-xs bg-[#FFFBEB] border border-[#FCD34D] text-[#92400E] rounded-md px-3 py-2 font-mono">
-              <strong>Debug:</strong> {debugStep}
-            </div>
           )}
           <Button
             type="submit"
