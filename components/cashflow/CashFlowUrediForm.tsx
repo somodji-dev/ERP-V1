@@ -57,7 +57,7 @@ export function CashFlowUrediForm({ snapshot }: Props) {
     ukupnoCash != null && dugovanja != null ? ukupnoCash - dugovanja : null
   const ukupnoDetaljan =
     potrazivanjaKupci + racunIntesa + racunNlb + devizniRacun + gotoviProizvodi + sirovine + ostalo
-  const netoDetaljan = ukupnoDetaljan - dugovanja
+  const netoDetaljan = ukupnoDetaljan - (dugovanja ?? 0)
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
