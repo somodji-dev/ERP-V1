@@ -109,7 +109,7 @@ export function CashFlowUrediForm({ snapshot }: Props) {
     return (
       <form onSubmit={handleSubmit} className="space-y-6">
         <p className="text-sm text-[#6B7280]">
-          Izmena — {MESECI[Number(snapshot.mesec)]} {snapshot.godina} (Brzi unos)
+          Izmena — {MESECI[Number(snapshot.mesec)]} {String(snapshot.godina ?? "")} (Brzi unos)
         </p>
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2">
@@ -165,7 +165,7 @@ export function CashFlowUrediForm({ snapshot }: Props) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <p className="text-sm text-[#6B7280]">
-        Izmena — {MESECI[Number(snapshot.mesec)]} {snapshot.godina} (Detaljni unos)
+        Izmena — {MESECI[Number(snapshot.mesec)]} {String(snapshot.godina ?? "")} (Detaljni unos)
       </p>
       <div className="grid gap-4 sm:grid-cols-2">
         {CASH_FIELDS.map(({ key, label }) => {

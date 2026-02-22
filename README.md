@@ -18,6 +18,8 @@ npm install
 npm run dev
 ```
 
+4. **Pre svakog `git push`** automatski se pokreće `npm run build` (Husky pre-push hook). Ako build padne, push se prekida — isto kao na Vercel-u.
+
 ## Objavljivanje na server (pristup 24/7)
 
 Da bi ERP radio i kada je tvoj računar ugašen, treba ga hostovati (npr. Vercel). GitHub služi za **kod**, ne za pokretanje aplikacije. Koraci: **[docs/deploy-server.md](docs/deploy-server.md)**.

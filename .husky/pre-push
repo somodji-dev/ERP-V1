@@ -1,0 +1,3 @@
+#!/usr/bin/env sh
+# Ista provera kao na Vercel-u — ako build padne, push se prekida
+npm run build
