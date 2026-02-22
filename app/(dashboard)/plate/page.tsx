@@ -38,12 +38,13 @@ export default async function PlateListPage() {
 
   const list = reports ?? []
   type Row = Record<string, unknown> & { employees?: { ime?: string; prezime?: string } | { ime?: string; prezime?: string }[] | null }
-  const rows = list.map((r: Row) => {
+  type PlateRow = { id: unknown; mesec: unknown; godina: unknown; neto_za_isplatu: unknown; status: unknown; employeeName: string }
+  const rows: PlateRow[] = list.map((r: Row) => {
     const emp = Array.isArray(r.employees) ? r.employees[0] : r.employees
     const employeeName = emp
       ? `${String(emp.ime ?? "")} ${String(emp.prezime ?? "")}`.trim()
       : "—"
-    return { ...r, employeeName }
+    return { id: r.id, mesec: r.mesec, godina: r.godina, neto_za_isplatu: r.neto_za_isplatu, status: r.status, employeeName }
   })
 
   return (
@@ -94,10 +95,12 @@ export default async function PlateListPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map((row) => (
+                {rows.map((row) => {
+                  const status = String(row.status ?? "")
+                  return (
                   <TableRow key={String(row.id)} className="border-[#F3F4F6] hover:bg-[#F4F5F7]">
                     <TableCell className="text-sm font-medium text-[#111827]">
-                      {String((row as { employeeName: string }).employeeName)}
+                      {row.employeeName}
                     </TableCell>
                     <TableCell className="text-sm text-[#6B7280]">
                       {MESECI[Number(row.mesec)]} {String(row.godina ?? "")}
@@ -108,14 +111,14 @@ export default async function PlateListPage() {
                     <TableCell>
                       <span
                         className={
-                          row.status === "isplacen"
+                          status === "isplacen"
                             ? "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium bg-[#D1FAE5] text-[#16A34A]"
-                            : row.status === "finalizovan"
+                            : status === "finalizovan"
                               ? "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium bg-[#DBEAFE] text-[#2563EB]"
                               : "inline-flex rounded-full px-2.5 py-0.5 text-xs font-medium bg-[#F3F4F6] text-[#6B7280]"
                         }
                       >
-                        {row.status === "nacrt" ? "Nacrt" : row.status === "finalizovan" ? "Finalizovan" : "Isplaćen"}
+                        {status === "nacrt" ? "Nacrt" : status === "finalizovan" ? "Finalizovan" : "Isplaćen"}
                       </span>
                     </TableCell>
                     <TableCell className="text-right">
@@ -127,7 +130,8 @@ export default async function PlateListPage() {
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))}
+                  )
+                })}
               </TableBody>
             </Table>
           )}
