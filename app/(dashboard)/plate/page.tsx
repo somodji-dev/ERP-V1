@@ -37,12 +37,14 @@ export default async function PlateListPage() {
   }
 
   const list = reports ?? []
-  const rows = list.map((r: { employees?: { ime?: string; prezime?: string } | null } & Record<string, unknown>) => ({
-    ...r,
-    employeeName: r.employees
-      ? `${(r.employees.ime ?? "")} ${(r.employees.prezime ?? "")}`.trim()
-      : "—",
-  }))
+  type Row = Record<string, unknown> & { employees?: { ime?: string; prezime?: string } | { ime?: string; prezime?: string }[] | null }
+  const rows = list.map((r: Row) => {
+    const emp = Array.isArray(r.employees) ? r.employees[0] : r.employees
+    const employeeName = emp
+      ? `${String(emp.ime ?? "")} ${String(emp.prezime ?? "")}`.trim()
+      : "—"
+    return { ...r, employeeName }
+  })
 
   return (
     <div>
