@@ -121,7 +121,7 @@ export default async function ProizvodnjaDetaljPage({ params }: Props) {
   if (!nalog) notFound()
 
   const dr = firstRow((nalog as Record<string, unknown>).draziranje ?? nalog.draziranje)
-  const pr = firstRow((nalog as Record<string, unknown>).przenje ?? nalog.przenje)
+  const pr = firstRow<{ merenje_tpm?: number | null }>((nalog as Record<string, unknown>).przenje ?? nalog.przenje)
   const pak = firstRow((nalog as Record<string, unknown>).pakovanje ?? nalog.pakovanje)
   const radniciNames = (nalog.work_order_employees ?? [])
     .map((r) => r.employee && `${r.employee.ime} ${r.employee.prezime}`)
