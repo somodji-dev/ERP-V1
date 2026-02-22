@@ -549,7 +549,7 @@ export async function getAnalitikaRadniNalozi(
     const radnikName = drRadnik
       ? `${String(drRadnik.ime ?? "").trim()} ${String(drRadnik.prezime ?? "").trim()}`.trim()
       : ""
-    if (radnikName && dr.broj_draziranja != null) {
+    if (dr && radnikName && dr.broj_draziranja != null) {
       draziranjeByWorker.set(radnikName, (draziranjeByWorker.get(radnikName) ?? 0) + Number(dr.broj_draziranja))
     }
     const pak = firstRow(row.pakovanje)
