@@ -120,7 +120,7 @@ function toInitialData(nalog: NalogRow): WorkOrderFormValues {
       bbq_200g: pak ? Number((pak as Record<string, unknown>).bbq_200g ?? 0) : 0,
       bbq_150g: pak ? Number((pak as Record<string, unknown>).bbq_150g ?? 0) : 0,
       bbq_80g: pak ? Number((pak as Record<string, unknown>).bbq_80g ?? 0) : 0,
-      lot_broj: (pak && "lot_broj" in pak ? (pak as Record<string, unknown>).lot_broj : null) ?? "",
+      lot_broj: pak && "lot_broj" in pak ? String((pak as Record<string, unknown>).lot_broj ?? "") : "",
     },
   }
 }
