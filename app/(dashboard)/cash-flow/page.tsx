@@ -112,7 +112,7 @@ export default async function CashFlowPage() {
                       className="border-[#F3F4F6] hover:bg-[#F4F5F7]"
                     >
                       <TableCell className="text-sm font-medium text-[#111827]">
-                        {MESECI[Number(row.mesec)]} {row.godina}
+                        {MESECI[Number(row.mesec)]} {String(row.godina ?? "")}
                       </TableCell>
                       <TableCell className="text-sm font-medium text-[#111827]">
                         {formatCurrency(Number(row.neto_cash_flow ?? 0))}
@@ -146,7 +146,7 @@ export default async function CashFlowPage() {
                           </Button>
                           <CashFlowDeleteButton
                             snapshotId={String(row.id)}
-                            label={`${MESECI[Number(row.mesec)]} ${row.godina}`}
+                            label={`${MESECI[Number(row.mesec)]} ${String(row.godina ?? "")}`}
                           />
                         </div>
                       </TableCell>
