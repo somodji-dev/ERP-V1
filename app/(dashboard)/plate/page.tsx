@@ -94,16 +94,16 @@ export default async function PlateListPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {rows.map((row: { id: string; employeeName: string; mesec: number; godina: number; neto_za_isplatu: number; status: string }) => (
-                  <TableRow key={row.id} className="border-[#F3F4F6] hover:bg-[#F4F5F7]">
+                {rows.map((row) => (
+                  <TableRow key={String(row.id)} className="border-[#F3F4F6] hover:bg-[#F4F5F7]">
                     <TableCell className="text-sm font-medium text-[#111827]">
-                      {row.employeeName}
+                      {String((row as { employeeName: string }).employeeName)}
                     </TableCell>
                     <TableCell className="text-sm text-[#6B7280]">
-                      {MESECI[row.mesec]} {row.godina}
+                      {MESECI[Number(row.mesec)]} {String(row.godina ?? "")}
                     </TableCell>
                     <TableCell className="text-sm font-medium text-[#111827]">
-                      {formatCurrency(Number(row.neto_za_isplatu))}
+                      {formatCurrency(Number(row.neto_za_isplatu ?? 0))}
                     </TableCell>
                     <TableCell>
                       <span
@@ -120,7 +120,7 @@ export default async function PlateListPage() {
                     </TableCell>
                     <TableCell className="text-right">
                       <Button asChild size="sm" className="bg-[#2563EB] hover:bg-[#1D4ED8]">
-                        <Link href={`/plate/${row.id}`}>
+                        <Link href={`/plate/${String(row.id)}`}>
                           <Eye className="mr-1.5 h-4 w-4" />
                           Pogledaj
                         </Link>
