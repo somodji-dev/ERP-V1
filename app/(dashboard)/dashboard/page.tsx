@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/auth/user"
 import { getUserPermissions, canViewModule, getFirstAllowedRoute } from "@/lib/auth/permissions"
 import { getDashboardData } from "@/lib/dashboard/data"
 import { KPICard } from "@/components/dashboard/KPICard"
-import { DashboardCashFlowChart } from "@/components/dashboard/DashboardCashFlowChart"
+import { CashFlowChartWithRange } from "@/components/cashflow/CashFlowChartWithRange"
 import { ProductionChart } from "@/components/dashboard/ProductionChart"
 import { RecentOrders } from "@/components/dashboard/RecentOrders"
 import { QuickActions } from "@/components/dashboard/QuickActions"
@@ -59,7 +59,7 @@ export default async function DashboardPage() {
           value={data.proizvodnja?.dailyAverage ?? 0}
           valueSuffix=" kg"
           change={data.proizvodnja?.change ?? undefined}
-          subtitle={data.proizvodnja ? `Prosek dnevno (${data.proizvodnja.daysInPeriod} dana)` : "Nema podataka"}
+          subtitle={data.proizvodnja ? `Prosek po smeni (${data.proizvodnja.shiftsInPeriod} smena)` : "Nema podataka"}
           icon={<Package className="h-5 w-5" />}
           href="/analitika/proizvodnja"
         />
@@ -76,12 +76,12 @@ export default async function DashboardPage() {
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="rounded-xl border border-[#E5E7EB] bg-white p-6 shadow-sm">
           <h2 className="mb-4 text-lg font-semibold text-[#111827]">Cash Flow trend</h2>
-          <p className="mb-4 text-sm text-[#6B7280]">Poslednjih 12 meseci — Cash, Dugovanja, Neto</p>
-          <DashboardCashFlowChart data={data.chartCashFlow} />
+          <p className="mb-4 text-sm text-[#6B7280]">Izaberite period ispod grafikona (12 meseci, 5 godina ili Od–Do).</p>
+          <CashFlowChartWithRange initialData={data.chartCashFlow} />
         </div>
         <div className="rounded-xl border border-[#E5E7EB] bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-[#111827]">Dnevna proizvodnja</h2>
-          <p className="mb-4 text-sm text-[#6B7280]">Poslednjih 30 dana — Pikant + BBQ (kg)</p>
+          <h2 className="mb-4 text-lg font-semibold text-[#111827]">Proizvodnja po smeni</h2>
+          <p className="mb-4 text-sm text-[#6B7280]">Poslednjih 30 smena — Pikant + BBQ (kg)</p>
           <ProductionChart data={data.dailyProductionChart} averageLine={avgLine} />
         </div>
       </div>

@@ -12,20 +12,36 @@ function toDateStr(d: Date): string {
   return `${y}-${m}-${day}`
 }
 
+/** Format: NN-MM-YY (redni broj u mesecu, mesec, godina); npr. 01-02-25. Sledeći = max(NN) za taj mesec + 1. */
 export async function getNextBrojNaloga(): Promise<string> {
   const supabase = await createClient()
-  const godina = new Date().getFullYear()
-  const start = `${godina}-01-01`
-  const { count, error } = await supabase
+  const now = new Date()
+  const godina = now.getFullYear()
+  const mesec = now.getMonth() + 1
+  const mm = String(mesec).padStart(2, "0")
+  const yy = String(godina).slice(-2)
+  const suffix = `-${mm}-${yy}`
+  const { data, error } = await supabase
     .from("work_orders")
-    .select("*", { count: "exact", head: true })
-    .gte("created_at", start)
+    .select("broj_naloga")
+    .like("broj_naloga", `%${suffix}`)
   if (error) {
     logAppError(error.message, "getNextBrojNaloga")
-    return `RN-${godina}-001`
+    return `01-${mm}-${yy}`
   }
-  const next = (count ?? 0) + 1
-  return `RN-${godina}-${String(next).padStart(3, "0")}`
+  let maxN = 0
+  for (const row of data ?? []) {
+    const b = String(row.broj_naloga ?? "")
+    if (!b.endsWith(suffix)) continue
+    const parts = b.split("-")
+    if (parts.length !== 3) continue
+    const n = parseInt(parts[0], 10)
+    if (parts[1] === mm && parts[2] === yy && !Number.isNaN(n) && n >= 0) {
+      if (n > maxN) maxN = n
+    }
+  }
+  const next = maxN + 1
+  return `${String(next).padStart(2, "0")}-${mm}-${yy}`
 }
 
 export async function createWorkOrder(data: WorkOrderFormValues): Promise<{ success: true; data: { id: string } } | { success: false; error: string }> {

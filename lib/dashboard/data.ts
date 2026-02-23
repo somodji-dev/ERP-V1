@@ -16,7 +16,7 @@ export type DashboardKpiProizvodnja = {
   ukupnoKg: number
   dailyAverage: number
   change: { value: number; percentage: number; isPositive: boolean } | null
-  daysInPeriod: number
+  shiftsInPeriod: number
 }
 
 export type DashboardKpiRadniNalozi = {
@@ -105,14 +105,13 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   const currentKg = currentMonthOrders.reduce((sum, o) => sum + o.ukupnoKg, 0)
   const prevKg = prevMonthOrders.reduce((sum, o) => sum + o.ukupnoKg, 0)
-  // Dnevni prosek = ukupno kg / broj dana u kojima je bila proizvodnja (radni dani)
-  const distinctDaysCurrent = new Set(currentMonthOrders.map((o) => o.datum)).size
-  const daysWithProduction = Math.max(1, distinctDaysCurrent)
+  const shiftsCurrent = Math.max(1, currentMonthOrders.length)
+  const shiftsPrev = Math.max(1, prevMonthOrders.length)
   const proizvodnja: DashboardKpiProizvodnja | null =
     currentMonthOrders.length > 0
       ? {
           ukupnoKg: Math.round(currentKg * 10) / 10,
-          dailyAverage: Math.round((currentKg / daysWithProduction) * 10) / 10,
+          dailyAverage: Math.round((currentKg / shiftsCurrent) * 10) / 10,
           change:
             prevKg > 0
               ? {
@@ -121,7 +120,7 @@ export async function getDashboardData(): Promise<DashboardData> {
                   isPositive: currentKg >= prevKg,
                 }
               : null,
-          daysInPeriod: daysWithProduction,
+          shiftsInPeriod: currentMonthOrders.length,
         }
       : null
 
@@ -456,10 +455,11 @@ export async function getAnalitikaProizvodnja(
     .map(([name, kg]) => ({ name, kg: Math.round(kg * 10) / 10 }))
     .sort((a, b) => b.kg - a.kg)
     .slice(0, 5)
+  const brojSmena = Math.max(1, list.length)
   return {
     metrics: {
       ukupnoKg: Math.round(totalKg * 10) / 10,
-      prosekDnevno: dailyData.length > 0 ? Math.round((totalKg / dailyData.length) * 10) / 10 : 0,
+      prosekDnevno: Math.round((totalKg / brojSmena) * 10) / 10,
       pikantTotal: Math.round(dailyData.reduce((s, d) => s + d.pikant, 0) * 10) / 10,
       bbqTotal: Math.round(dailyData.reduce((s, d) => s + d.bbq, 0) * 10) / 10,
       brojNaloga: list.length,
@@ -571,11 +571,12 @@ export async function getAnalitikaRadniNalozi(
       draziranje: (dr?.broj_draziranja as number) ?? undefined,
     }
   })
+  const brojSmena = Math.max(1, list.length)
   const byWorkerDraziranje: DraziranjePoRadniku[] = Array.from(draziranjeByWorker.entries())
     .map(([name, ukupno]) => ({
       name,
       ukupnoDraziranja: ukupno,
-      prosekDnevno: Math.round((ukupno / daysInPeriod) * 10) / 10,
+      prosekDnevno: Math.round((ukupno / brojSmena) * 10) / 10,
     }))
     .sort((a, b) => b.prosekDnevno - a.prosekDnevno)
   return {

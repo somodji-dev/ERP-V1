@@ -65,16 +65,16 @@ export default async function AnalitikaRadniNaloziPage({ searchParams }: Props) 
 
       <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
         <MetricCard title="Ukupno naloga" value={metrics.ukupnoNaloga} />
-        <MetricCard title="Prosek naloga dnevno" value={metrics.prosekDnevno} subtitle="Naloga po danu u periodu" />
+        <MetricCard title="Prosek naloga po smeni" value={metrics.prosekDnevno} subtitle="Naloga po smeni u periodu" />
       </div>
 
       {byWorkerDraziranje.length > 0 && (
         <Card className="mb-6 border-[#E5E7EB] bg-white shadow-sm">
           <CardContent className="p-0">
             <div className="border-b border-[#E5E7EB] px-6 py-4">
-              <h2 className="text-lg font-semibold text-[#111827]">Prosek dražiranja po radniku (dnevno)</h2>
+              <h2 className="text-lg font-semibold text-[#111827]">Prosek dražiranja po radniku (po smeni)</h2>
               <p className="mt-1 text-xs text-[#6B7280]">
-                Prosek = ukupno dražiranja u periodu / broj dana u periodu (fiksno za sve radnike).
+                Prosek = ukupno dražiranja u periodu / broj smena u periodu (fiksno za sve radnike).
               </p>
             </div>
             <Table>
@@ -82,7 +82,7 @@ export default async function AnalitikaRadniNaloziPage({ searchParams }: Props) 
                 <TableRow className="border-[#E5E7EB] hover:bg-transparent">
                   <TableHead className="text-[#6B7280]">Radnik</TableHead>
                   <TableHead className="text-[#6B7280]">Ukupno dražiranja</TableHead>
-                  <TableHead className="text-[#6B7280]">Prosek dnevno</TableHead>
+                  <TableHead className="text-[#6B7280]">Prosek po smeni</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>

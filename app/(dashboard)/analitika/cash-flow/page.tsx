@@ -10,7 +10,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import { getAnalitikaCashFlow } from "@/lib/dashboard/data"
-import { DashboardCashFlowChart } from "@/components/dashboard/DashboardCashFlowChart"
+import { CashFlowChartWithRange } from "@/components/cashflow/CashFlowChartWithRange"
 import { MetricCard } from "@/components/analitika/MetricCard"
 import { PeriodFilter } from "@/components/analitika/PeriodFilter"
 import { ExportButton } from "@/components/analitika/ExportButton"
@@ -73,7 +73,8 @@ export default async function AnalitikaCashFlowPage({ searchParams }: Props) {
       <Card className="mb-6 border-[#E5E7EB] bg-white shadow-sm">
         <CardContent className="p-6">
           <h2 className="mb-4 text-lg font-semibold text-[#111827]">Cash Flow kretanje</h2>
-          <DashboardCashFlowChart data={chartData} />
+          <p className="mb-4 text-sm text-[#6B7280]">Izaberite period ispod grafikona (12 meseci, 5 godina ili Od–Do).</p>
+          <CashFlowChartWithRange initialData={chartData} />
         </CardContent>
       </Card>
 

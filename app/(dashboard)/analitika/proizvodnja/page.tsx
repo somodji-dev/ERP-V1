@@ -61,7 +61,7 @@ export default async function AnalitikaProizvodnjaPage({ searchParams }: Props) 
           </Button>
           <div>
             <h1 className="text-xl font-bold text-[#111827]">Proizvodnja analitika</h1>
-            <p className="text-sm text-[#6B7280]">Dnevna proizvodnja i raspored</p>
+            <p className="text-sm text-[#6B7280]">Proizvodnja po smeni i raspored</p>
           </div>
         </div>
         <Suspense fallback={null}>
@@ -80,7 +80,7 @@ export default async function AnalitikaProizvodnjaPage({ searchParams }: Props) 
 
       <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-5">
         <MetricCard title="Ukupno proizvodnja" value={metrics.ukupnoKg} valueSuffix=" kg" />
-        <MetricCard title="Prosek dnevno" value={metrics.prosekDnevno} valueSuffix=" kg" />
+        <MetricCard title="Prosek po smeni" value={metrics.prosekDnevno} valueSuffix=" kg" />
         <MetricCard title="Pikant ukupno" value={metrics.pikantTotal} valueSuffix=" kg" />
         <MetricCard title="BBQ ukupno" value={metrics.bbqTotal} valueSuffix=" kg" />
         <MetricCard title="Broj naloga" value={metrics.brojNaloga} />
@@ -88,7 +88,7 @@ export default async function AnalitikaProizvodnjaPage({ searchParams }: Props) 
 
       <Card className="mb-6 border-[#E5E7EB] bg-white shadow-sm">
         <CardContent className="p-6">
-          <h2 className="mb-4 text-lg font-semibold text-[#111827]">Dnevna proizvodnja</h2>
+          <h2 className="mb-4 text-lg font-semibold text-[#111827]">Proizvodnja po smeni</h2>
           <ProductionChart data={chartData} averageLine={avgLine} />
         </CardContent>
       </Card>
@@ -98,7 +98,7 @@ export default async function AnalitikaProizvodnjaPage({ searchParams }: Props) 
       <Card className="border-[#E5E7EB] bg-white shadow-sm">
         <CardContent className="p-0">
           <div className="border-b border-[#E5E7EB] px-6 py-4">
-            <h2 className="text-lg font-semibold text-[#111827]">Dnevni podaci</h2>
+            <h2 className="text-lg font-semibold text-[#111827]">Podaci po datumu</h2>
           </div>
           {dailyData.length === 0 ? (
             <div className="px-6 py-12 text-center text-[#6B7280]">Nema podataka za izabrani period.</div>
