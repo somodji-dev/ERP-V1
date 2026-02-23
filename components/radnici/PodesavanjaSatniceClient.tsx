@@ -39,7 +39,9 @@ export function PodesavanjaSatniceClient({ rates }: { rates: RateRow[] }) {
   function openEdit(rate: RateRow) {
     setEditingTip(rate)
     setIznos(rate.iznos === 0 || rate.iznos == null ? "" : String(rate.iznos))
-    setVaziOd(rate.vazi_od ?? firstDayOfCurrentMonth())
+    const vaziOdValue =
+      rate.vazi_od && String(rate.vazi_od).trim() !== "" ? rate.vazi_od : firstDayOfCurrentMonth()
+    setVaziOd(vaziOdValue)
     setNapomena(rate.napomena ?? "")
     setOpen(true)
   }

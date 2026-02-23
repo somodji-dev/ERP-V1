@@ -31,6 +31,8 @@ import {
   getBonusesForMonth,
   addAdvanceAction,
   addBonusAction,
+  deleteAdvanceAction,
+  deleteBonusAction,
 } from "@/app/actions/sati"
 import {
   AlertDialog,
@@ -151,7 +153,7 @@ export function UnosSatiClient({ employees }: { employees: Employee[] }) {
       toast({ title: "Greška", description: result.error, variant: "destructive" })
       return
     }
-    toast({ title: "Obrisano: platni izveštaj (ako je postojao) i svi unosi sati za ovaj mesec." })
+    toast({ title: "Obrisano: platni izveštaj, sati, akontacije i bonusi za ovaj mesec." })
     setDani([])
     setAdvances([])
     setBonuses([])
@@ -288,7 +290,7 @@ export function UnosSatiClient({ employees }: { employees: Employee[] }) {
                 className="border-[#DC2626] text-[#DC2626] hover:bg-[#FEF2F2]"
               >
                 <Trash2 className="mr-2 h-4 w-4" />
-                Obriši sati za ovaj mesec
+                Obriši sve za ovaj mesec
               </Button>
             </div>
           </CardHeader>
@@ -338,9 +340,9 @@ export function UnosSatiClient({ employees }: { employees: Employee[] }) {
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Obriši sati za ovaj mesec?</AlertDialogTitle>
+            <AlertDialogTitle>Obriši sve za ovaj mesec?</AlertDialogTitle>
             <AlertDialogDescription>
-              Prvo će se obrisati platni izveštaj za ovog radnika i izabrani mesec (ako postoji), zatim svi unosi sati za taj mesec. Ovu radnju nije moguće poništiti.
+              Biće obrisani: platni izveštaj (ako postoji), svi unosi sati, sve akontacije i svi bonusi za ovog radnika i izabrani mesec. Ovu radnju nije moguće poništiti.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -399,6 +401,19 @@ function AkontacijeSection({
   const [iznos, setIznos] = useState("")
   const [napomena, setNapomena] = useState("")
   const [submitting, setSubmitting] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  async function handleDelete(id: string) {
+    setDeletingId(id)
+    const result = await deleteAdvanceAction(id)
+    setDeletingId(null)
+    if (result.error) {
+      toast({ title: "Greška", description: result.error, variant: "destructive" })
+      return
+    }
+    toast({ title: "Akontacija obrisana." })
+    onRefresh()
+  }
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
@@ -469,6 +484,7 @@ function AkontacijeSection({
                 <TableHead className="text-[#6B7280]">Datum</TableHead>
                 <TableHead className="text-[#6B7280]">Iznos</TableHead>
                 <TableHead className="text-[#6B7280]">Napomena</TableHead>
+                <TableHead className="text-[#6B7280] w-24 text-right">Akcije</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -482,6 +498,18 @@ function AkontacijeSection({
                   </TableCell>
                   <TableCell className="text-sm">{formatCurrency(a.iznos)}</TableCell>
                   <TableCell className="text-sm text-[#6B7280]">{a.napomena ?? "—"}</TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-[#DC2626] hover:bg-[#FEF2F2]"
+                      disabled={deletingId === a.id}
+                      onClick={() => handleDelete(a.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -509,6 +537,19 @@ function BonusiSection({
   const [iznos, setIznos] = useState("")
   const [opis, setOpis] = useState("")
   const [submitting, setSubmitting] = useState(false)
+  const [deletingId, setDeletingId] = useState<string | null>(null)
+
+  async function handleDelete(id: string) {
+    setDeletingId(id)
+    const result = await deleteBonusAction(id)
+    setDeletingId(null)
+    if (result.error) {
+      toast({ title: "Greška", description: result.error, variant: "destructive" })
+      return
+    }
+    toast({ title: "Bonus obrisan." })
+    onRefresh()
+  }
 
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault()
@@ -568,6 +609,7 @@ function BonusiSection({
               <TableRow className="border-[#E5E7EB]">
                 <TableHead className="text-[#6B7280]">Iznos</TableHead>
                 <TableHead className="text-[#6B7280]">Opis</TableHead>
+                <TableHead className="text-[#6B7280] w-24 text-right">Akcije</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -575,6 +617,18 @@ function BonusiSection({
                 <TableRow key={b.id} className="border-[#E5E7EB]">
                   <TableCell className="text-sm">{formatCurrency(b.iznos)}</TableCell>
                   <TableCell className="text-sm text-[#6B7280]">{b.opis ?? "—"}</TableCell>
+                  <TableCell className="text-right">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="text-[#DC2626] hover:bg-[#FEF2F2]"
+                      disabled={deletingId === b.id}
+                      onClick={() => handleDelete(b.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

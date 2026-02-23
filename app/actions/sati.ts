@@ -52,7 +52,7 @@ export async function saveSatiAction(
 }
 
 /**
- * Briše sati za mesec: prvo platni izveštaj za tog radnika/mesec, zatim unose sati (work_logs).
+ * Briše sve podatke za mesec: platni izveštaj, sati (work_logs), akontacije i bonusi.
  * Redosled je bitan da ne ostane izveštaj bez podataka.
  */
 export async function deleteSatiZaMesecAction(
@@ -72,6 +72,20 @@ export async function deleteSatiZaMesecAction(
     .eq("mesec", mesec)
     .eq("godina", godina)
 
+  await supabase
+    .from("advances")
+    .delete()
+    .eq("employee_id", employeeId)
+    .eq("mesec", mesec)
+    .eq("godina", godina)
+
+  await supabase
+    .from("bonuses")
+    .delete()
+    .eq("employee_id", employeeId)
+    .eq("mesec", mesec)
+    .eq("godina", godina)
+
   const { error } = await supabase
     .from("work_logs")
     .delete()
@@ -86,6 +100,30 @@ export async function deleteSatiZaMesecAction(
   revalidatePath("/sati")
   revalidatePath("/plate")
   revalidatePath("/radnici")
+  return {}
+}
+
+export async function deleteAdvanceAction(advanceId: string): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const { error } = await supabase.from("advances").delete().eq("id", advanceId)
+  if (error) {
+    logAppError(error.message, "deleteAdvanceAction")
+    return { error: error.message }
+  }
+  revalidatePath("/sati")
+  revalidatePath("/plate")
+  return {}
+}
+
+export async function deleteBonusAction(bonusId: string): Promise<{ error?: string }> {
+  const supabase = await createClient()
+  const { error } = await supabase.from("bonuses").delete().eq("id", bonusId)
+  if (error) {
+    logAppError(error.message, "deleteBonusAction")
+    return { error: error.message }
+  }
+  revalidatePath("/sati")
+  revalidatePath("/plate")
   return {}
 }
 
