@@ -1,3 +1,6 @@
+import { redirect } from "next/navigation"
+import { getCurrentUser } from "@/lib/auth/user"
+import { getUserPermissions, canViewModule, getFirstAllowedRoute } from "@/lib/auth/permissions"
 import { getDashboardData } from "@/lib/dashboard/data"
 import { KPICard } from "@/components/dashboard/KPICard"
 import { DashboardCashFlowChart } from "@/components/dashboard/DashboardCashFlowChart"
@@ -9,6 +12,22 @@ import { TrendingUp, Package, ClipboardList } from "lucide-react"
 const MESECI = ["", "Jan", "Feb", "Mar", "Apr", "Maj", "Jun", "Jul", "Avg", "Sep", "Okt", "Nov", "Dec"]
 
 export default async function DashboardPage() {
+  const user = await getCurrentUser()
+  if (!user) redirect("/login")
+  const permissions = await getUserPermissions(user.id)
+  if (!canViewModule(permissions, "dashboard")) {
+    const firstRoute = getFirstAllowedRoute(permissions)
+    if (firstRoute) redirect(firstRoute)
+    return (
+      <div className="rounded-xl border border-[#E5E7EB] bg-white p-8 shadow-sm">
+        <h2 className="text-lg font-semibold text-[#111827]">Nema pristupa</h2>
+        <p className="mt-2 text-sm text-[#6B7280]">
+          Nemate pristup nijednom modulu. Kontaktirajte administratora da vam dodeli prava.
+        </p>
+      </div>
+    )
+  }
+
   const data = await getDashboardData()
   const dailySorted = data.dailyProductionChart
   const avgLine =

@@ -298,6 +298,38 @@ export async function getSnapshotsForChart(limit = 12): Promise<
   }))
 }
 
+export type ChartSnapshotRow = {
+  mesec: number
+  godina: number
+  ukupno_cash: number
+  dugovanja_dobavljaci: number
+  neto_cash_flow: number
+}
+
+export async function getSnapshotsForChartByRange(
+  godinaOd: number,
+  mesecOd: number,
+  godinaDo: number,
+  mesecDo: number
+): Promise<ChartSnapshotRow[]> {
+  const supabase = await createClient()
+  const { data } = await supabase
+    .from("cash_snapshots")
+    .select("mesec, godina, ukupno_cash, dugovanja_dobavljaci, neto_cash_flow")
+    .order("godina", { ascending: true })
+    .order("mesec", { ascending: true })
+
+  const list = (data ?? []) as ChartSnapshotRow[]
+  return list.filter((r) => {
+    const g = Number(r.godina)
+    const m = Number(r.mesec)
+    if (g < godinaOd || g > godinaDo) return false
+    if (g === godinaOd && m < mesecOd) return false
+    if (g === godinaDo && m > mesecDo) return false
+    return true
+  })
+}
+
 export async function getTwoSnapshotsForCompare(
   id1: string,
   id2: string

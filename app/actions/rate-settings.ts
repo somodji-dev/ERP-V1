@@ -41,10 +41,11 @@ export async function insertRateAction(formData: FormData): Promise<{ error?: st
     logAppError("Tip, iznos i važi od su obavezni.", "insertRateAction")
     return { error: "Tip, iznos i važi od su obavezni." }
   }
-  const iznos = Number(iznosStr)
+  const iznosNormalized = String(iznosStr).trim().replace(",", ".")
+  const iznos = Number(iznosNormalized)
   if (Number.isNaN(iznos) || iznos < 0) {
-    logAppError("Iznos mora biti nula ili veći.", "insertRateAction")
-    return { error: "Iznos mora biti nula ili veći." }
+    logAppError("Iznos mora biti broj (nula ili veći).", "insertRateAction")
+    return { error: "Iznos mora biti broj (nula ili veći)." }
   }
 
   const supabase = await createClient()
@@ -57,6 +58,15 @@ export async function insertRateAction(formData: FormData): Promise<{ error?: st
 
   if (error) {
     logAppError(error.message, "insertRateAction")
+    const isCheckViolation =
+      (error as { code?: string }).code === "23514" ||
+      String(error.message).toLowerCase().includes("check constraint")
+    if (isCheckViolation && tip === "topli_obrok") {
+      return {
+        error:
+          "Tip satnice „Topli obrok” nije uključen u bazu. U Supabase SQL Editoru pokrenite migraciju: supabase/migration-rate-topli-obrok.sql",
+      }
+    }
     return { error: error.message }
   }
   revalidatePath("/radnici/podesavanja")

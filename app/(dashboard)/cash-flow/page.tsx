@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { listSnapshots, getSnapshotsForChart } from "@/app/actions/cashflow"
 import { CashFlowKpiCards } from "@/components/cashflow/CashFlowKpiCards"
-import { CashFlowChart } from "@/components/cashflow/CashFlowChart"
+import { CashFlowChartWithRange } from "@/components/cashflow/CashFlowChartWithRange"
 import { prepareChartData } from "@/lib/cashflow/chartData"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -60,9 +60,9 @@ export default async function CashFlowPage() {
               Kretanje kroz vreme
             </h2>
             <p className="mb-4 text-sm text-[#6B7280]">
-              Poslednjih 12 snimaka — Cash (aktiva), Dugovanja (pasiva), Neto C/F
+              Kretanje kroz vreme — izaberite period ispod grafikona (12 meseci, 5 godina ili Od–Do).
             </p>
-            <CashFlowChart data={chartData} />
+            <CashFlowChartWithRange initialData={chartData} />
           </CardContent>
         </Card>
 

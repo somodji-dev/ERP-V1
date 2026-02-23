@@ -24,6 +24,7 @@ export async function Sidebar() {
   if (!user) redirect("/login")
 
   const permissions = await getUserPermissions(user.id)
+  const showDashboard = canViewModule(permissions, "dashboard")
   const showRadnici = canViewModule(permissions, "radnici")
   const visibleItems = NAV_ITEMS.filter((item) =>
     canViewModule(permissions, item.modul)
@@ -48,9 +49,11 @@ export async function Sidebar() {
           Navigacija
         </p>
         <ul className="space-y-0.5">
-          <li>
-            <NavItem href="/dashboard" label="Dashboard" iconName="Home" />
-          </li>
+          {showDashboard && (
+            <li>
+              <NavItem href="/dashboard" label="Dashboard" iconName="Home" />
+            </li>
+          )}
           {showRadnici && (
             <li>
               <NavGroup

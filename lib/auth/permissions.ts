@@ -60,3 +60,19 @@ export function canDelete(
   const perm = permissions.find((p) => p.modul === modulName)
   return perm?.delete === true
 }
+
+/** Prva ruta koju korisnik sme da vidi (za preusmeravanje ako nema dashboard). */
+const MODULE_ROUTES: { modul: string; path: string }[] = [
+  { modul: "dashboard", path: "/dashboard" },
+  { modul: "radnici", path: "/radnici" },
+  { modul: "cashflow", path: "/cash-flow" },
+  { modul: "proizvodnja", path: "/proizvodnja" },
+  { modul: "podesavanja", path: "/podesavanja" },
+]
+
+export function getFirstAllowedRoute(permissions: UserPermission[]): string | null {
+  for (const { modul, path } of MODULE_ROUTES) {
+    if (canViewModule(permissions, modul)) return path
+  }
+  return null
+}
