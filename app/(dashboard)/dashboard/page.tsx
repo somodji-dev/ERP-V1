@@ -64,7 +64,7 @@ export default async function DashboardPage() {
           href="/analitika/proizvodnja"
         />
         <KPICard
-          title="Radni nalozi"
+          title="Radni nalozi analitika"
           value={data.radniNalozi?.count ?? 0}
           change={data.radniNalozi?.change ?? undefined}
           subtitle={data.radniNalozi ? `${MESECI[data.radniNalozi.mesec]} ${data.radniNalozi.godina}` : "Ovaj mesec"}
@@ -80,8 +80,8 @@ export default async function DashboardPage() {
           <CashFlowChartWithRange initialData={data.chartCashFlow} />
         </div>
         <div className="rounded-xl border border-[#E5E7EB] bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-[#111827]">Proizvodnja po smeni</h2>
-          <p className="mb-4 text-sm text-[#6B7280]">Poslednjih 30 smena — Pikant + BBQ (kg)</p>
+          <h2 className="mb-4 text-lg font-semibold text-[#111827]">Proizvodnja po danu</h2>
+          <p className="mb-4 text-sm text-[#6B7280]">Poslednjih 30 dana — Pikant + BBQ (kg)</p>
           <ProductionChart data={data.dailyProductionChart} averageLine={avgLine} />
         </div>
       </div>

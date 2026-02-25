@@ -24,7 +24,7 @@ type Props = { searchParams: Promise<{ period?: string; smena?: string }> }
 
 export default async function AnalitikaProizvodnjaPage({ searchParams }: Props) {
   const params = await searchParams
-  const { metrics, dailyData, byShift, byWorker } = await getAnalitikaProizvodnja({
+  const { metrics, dailyData, byShift, byWorkerDraziranje } = await getAnalitikaProizvodnja({
     period: params.period,
     smena: params.smena,
   })
@@ -44,9 +44,9 @@ export default async function AnalitikaProizvodnjaPage({ searchParams }: Props) 
     { name: "II smena", value: byShift.II, color: "#F59E0B" },
   ].filter((d) => d.value > 0)
 
-  const pieWorker = byWorker.slice(0, 5).map((w, i) => ({
+  const pieWorker = byWorkerDraziranje.map((w, i) => ({
     name: w.name,
-    value: w.kg,
+    value: w.prosekDraziranja,
     color: ["#2563EB", "#16A34A", "#F59E0B", "#6B7280", "#9CA3AF"][i] ?? "#6B7280",
   }))
 
@@ -88,7 +88,7 @@ export default async function AnalitikaProizvodnjaPage({ searchParams }: Props) 
 
       <Card className="mb-6 border-[#E5E7EB] bg-white shadow-sm">
         <CardContent className="p-6">
-          <h2 className="mb-4 text-lg font-semibold text-[#111827]">Proizvodnja po smeni</h2>
+          <h2 className="mb-4 text-lg font-semibold text-[#111827]">Proizvodnja po danu</h2>
           <ProductionChart data={chartData} averageLine={avgLine} />
         </CardContent>
       </Card>

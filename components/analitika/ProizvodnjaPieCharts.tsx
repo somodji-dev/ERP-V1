@@ -51,7 +51,7 @@ export function ProizvodnjaPieCharts({ pieShift, pieWorker }: Props) {
       {pieWorker.length > 0 && (
         <Card className="border-[#E5E7EB] bg-white shadow-sm">
           <CardContent className="p-6">
-            <h2 className="mb-4 text-lg font-semibold text-[#111827]">Top 5 radnika (kg)</h2>
+            <h2 className="mb-4 text-lg font-semibold text-[#111827]">Top 5 radnika po proseku dražiranja</h2>
             <div className="h-[240px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
@@ -62,13 +62,13 @@ export function ProizvodnjaPieCharts({ pieShift, pieWorker }: Props) {
                     cx="50%"
                     cy="50%"
                     outerRadius={80}
-                    label={({ name, value }) => `${name}: ${value} kg`}
+                    label={({ name, value }) => `${name}: ${Number(value).toLocaleString("sr-Latn", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`}
                   >
                     {pieWorker.map((e, i) => (
                       <Cell key={i} fill={e.color} />
                     ))}
                   </Pie>
-                  <Tooltip formatter={(v: number) => [`${v} kg`, ""]} />
+                  <Tooltip formatter={(v: number) => [`${Number(v).toLocaleString("sr-Latn", { minimumFractionDigits: 1, maximumFractionDigits: 1 })}`, ""]} />
                   <Legend />
                 </PieChart>
               </ResponsiveContainer>

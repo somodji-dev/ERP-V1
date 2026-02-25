@@ -65,7 +65,6 @@ export default async function AnalitikaRadniNaloziPage({ searchParams }: Props) 
 
       <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
         <MetricCard title="Ukupno naloga" value={metrics.ukupnoNaloga} />
-        <MetricCard title="Prosek naloga po smeni" value={metrics.prosekDnevno} subtitle="Naloga po smeni u periodu" />
       </div>
 
       {byWorkerDraziranje.length > 0 && (
@@ -74,7 +73,7 @@ export default async function AnalitikaRadniNaloziPage({ searchParams }: Props) 
             <div className="border-b border-[#E5E7EB] px-6 py-4">
               <h2 className="text-lg font-semibold text-[#111827]">Prosek dražiranja po radniku (po smeni)</h2>
               <p className="mt-1 text-xs text-[#6B7280]">
-                Prosek = ukupno dražiranja u periodu / broj smena u periodu (fiksno za sve radnike).
+                Prosek = ukupno dražiranja / broj smena tog radnika na dražiranju.
               </p>
             </div>
             <Table>

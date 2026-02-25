@@ -371,7 +371,7 @@ export async function getAnalitikaProizvodnja(
   metrics: { ukupnoKg: number; prosekDnevno: number; pikantTotal: number; bbqTotal: number; brojNaloga: number }
   dailyData: DailyProdRow[]
   byShift: { I: number; II: number }
-  byWorker: Array<{ name: string; kg: number }>
+  byWorkerDraziranje: Array<{ name: string; prosekDraziranja: number }>
 }> {
   const period = params.period ? parseInt(params.period, 10) : 30
   const end = new Date()
@@ -390,7 +390,8 @@ export async function getAnalitikaProizvodnja(
         pikant_15kg, pikant_1kg, pikant_200g, pikant_150g, pikant_80g,
         bbq_15kg, bbq_1kg, bbq_200g, bbq_150g, bbq_80g,
         radnik:employees(ime, prezime)
-      )
+      ),
+      draziranje(broj_draziranja, radnik:employees(ime, prezime))
     `
     )
     .gte("datum", startStr)
@@ -416,9 +417,13 @@ export async function getAnalitikaProizvodnja(
       bbq_80g?: number | null
       radnik?: { ime?: string; prezime?: string } | null
     }> | null
+    draziranje: Array<{
+      broj_draziranja: number
+      radnik?: { ime?: string; prezime?: string } | null
+    }> | null
   }>
   const dailyMap = new Map<string, { pikant: number; bbq: number; ukupno: number; count: number }>()
-  const workerMap = new Map<string, number>()
+  const draziranjeByWorker = new Map<string, { ukupno: number; brojSmena: number }>()
   let shiftI = 0
   let shiftII = 0
   for (const row of list) {
@@ -436,10 +441,20 @@ export async function getAnalitikaProizvodnja(
     }
     if (row.smena === "I") shiftI += 1
     else if (row.smena === "II") shiftII += 1
-    const name = pak?.radnik
-      ? `${String(pak.radnik.ime ?? "").trim()} ${String(pak.radnik.prezime ?? "").trim()}`.trim()
-      : "Nepoznat"
-    workerMap.set(name, (workerMap.get(name) ?? 0) + t.ukupno)
+    const dr = firstRow(row.draziranje)
+    const drRadnik = dr?.radnik
+    const drRadnikName = drRadnik
+      ? `${String(drRadnik.ime ?? "").trim()} ${String(drRadnik.prezime ?? "").trim()}`.trim()
+      : ""
+    if (dr && drRadnikName && dr.broj_draziranja != null) {
+      const ex = draziranjeByWorker.get(drRadnikName)
+      if (ex) {
+        ex.ukupno += Number(dr.broj_draziranja)
+        ex.brojSmena += 1
+      } else {
+        draziranjeByWorker.set(drRadnikName, { ukupno: Number(dr.broj_draziranja), brojSmena: 1 })
+      }
+    }
   }
   const dailyData: DailyProdRow[] = Array.from(dailyMap.entries())
     .sort((a, b) => b[0].localeCompare(a[0]))
@@ -451,9 +466,12 @@ export async function getAnalitikaProizvodnja(
       ukupno: Math.round(v.ukupno * 10) / 10,
     }))
   const totalKg = dailyData.reduce((s, d) => s + d.ukupno, 0)
-  const byWorker = Array.from(workerMap.entries())
-    .map(([name, kg]) => ({ name, kg: Math.round(kg * 10) / 10 }))
-    .sort((a, b) => b.kg - a.kg)
+  const byWorkerDraziranje = Array.from(draziranjeByWorker.entries())
+    .map(([name, { ukupno, brojSmena }]) => ({
+      name,
+      prosekDraziranja: Math.round((ukupno / Math.max(1, brojSmena)) * 10) / 10,
+    }))
+    .sort((a, b) => b.prosekDraziranja - a.prosekDraziranja)
     .slice(0, 5)
   const brojSmena = Math.max(1, list.length)
   return {
@@ -466,7 +484,7 @@ export async function getAnalitikaProizvodnja(
     },
     dailyData,
     byShift: { I: shiftI, II: shiftII },
-    byWorker,
+    byWorkerDraziranje,
   }
 }
 
@@ -540,7 +558,7 @@ export async function getAnalitikaRadniNalozi(
     pakovanje: Array<Record<string, number | null>>
   }>
   const bySupplier = new Map<string, number>()
-  const draziranjeByWorker = new Map<string, number>()
+  const draziranjeByWorker = new Map<string, { ukupno: number; brojSmena: number }>()
   const tableRows: NalogTableRow[] = list.map((row) => {
     const dr = firstRow(row.draziranje)
     if (dr?.dobavljac) bySupplier.set(String(dr.dobavljac), (bySupplier.get(String(dr.dobavljac)) ?? 0) + 1)
@@ -550,7 +568,13 @@ export async function getAnalitikaRadniNalozi(
       ? `${String(drRadnik.ime ?? "").trim()} ${String(drRadnik.prezime ?? "").trim()}`.trim()
       : ""
     if (dr && radnikName && dr.broj_draziranja != null) {
-      draziranjeByWorker.set(radnikName, (draziranjeByWorker.get(radnikName) ?? 0) + Number(dr.broj_draziranja))
+      const existing = draziranjeByWorker.get(radnikName)
+      if (existing) {
+        existing.ukupno += Number(dr.broj_draziranja)
+        existing.brojSmena += 1
+      } else {
+        draziranjeByWorker.set(radnikName, { ukupno: Number(dr.broj_draziranja), brojSmena: 1 })
+      }
     }
     const pak = firstRow(row.pakovanje)
     const t = calculateTotalKg(pak ?? null)
@@ -571,12 +595,11 @@ export async function getAnalitikaRadniNalozi(
       draziranje: (dr?.broj_draziranja as number) ?? undefined,
     }
   })
-  const brojSmena = Math.max(1, list.length)
   const byWorkerDraziranje: DraziranjePoRadniku[] = Array.from(draziranjeByWorker.entries())
-    .map(([name, ukupno]) => ({
+    .map(([name, { ukupno, brojSmena }]) => ({
       name,
       ukupnoDraziranja: ukupno,
-      prosekDnevno: Math.round((ukupno / brojSmena) * 10) / 10,
+      prosekDnevno: Math.round((ukupno / Math.max(1, brojSmena)) * 10) / 10,
     }))
     .sort((a, b) => b.prosekDnevno - a.prosekDnevno)
   return {
