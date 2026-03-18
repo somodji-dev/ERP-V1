@@ -5,7 +5,13 @@ import { createClient } from "@/lib/supabase/server"
 import { logAppError } from "@/lib/logger"
 import { getTipSataZaDan } from "@/lib/radnici/sati"
 
-type DanUnos = { datum: string; redovni: number; prekovremeni: number }
+export type DanUnos = {
+  datum: string
+  redovni: number
+  prekovremeni: number
+  godisnji?: boolean
+  bolovanje?: boolean
+}
 
 export async function saveSatiAction(
   employeeId: string,
@@ -45,9 +51,26 @@ export async function saveSatiAction(
         tip_sata: "prekovremeno",
       })
     }
+    if (dan.godisnji) {
+      await supabase.from("work_logs").insert({
+        employee_id: employeeId,
+        datum: dan.datum,
+        sati: 1,
+        tip_sata: "godisnji",
+      })
+    }
+    if (dan.bolovanje) {
+      await supabase.from("work_logs").insert({
+        employee_id: employeeId,
+        datum: dan.datum,
+        sati: 1,
+        tip_sata: "bolovanje",
+      })
+    }
   }
 
   revalidatePath("/sati")
+  revalidatePath("/radnici")
   return {}
 }
 
@@ -202,6 +225,42 @@ export async function addAdvanceAction(
   }
   revalidatePath("/sati")
   return {}
+}
+
+/** Broj dana godišnjeg odmora u tekućem periodu Jul–Jun. */
+export async function getGODaysUsed(employeeId: string): Promise<number> {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = now.getMonth()
+  const start = month < 6 ? `${year - 1}-07-01` : `${year}-07-01`
+  const end = month < 6 ? `${year}-06-30` : `${year + 1}-06-30`
+  const supabase = await createClient()
+  const { count } = await supabase
+    .from("work_logs")
+    .select("id", { count: "exact", head: true })
+    .eq("employee_id", employeeId)
+    .eq("tip_sata", "godisnji")
+    .gte("datum", start)
+    .lte("datum", end)
+  return count ?? 0
+}
+
+/** Broj dana bolovanja u kalendarskoj godini. */
+export async function getBolovanjeDaysUsed(
+  employeeId: string,
+  godina: number
+): Promise<number> {
+  const supabase = await createClient()
+  const start = `${godina}-01-01`
+  const end = `${godina}-12-31`
+  const { count } = await supabase
+    .from("work_logs")
+    .select("id", { count: "exact", head: true })
+    .eq("employee_id", employeeId)
+    .eq("tip_sata", "bolovanje")
+    .gte("datum", start)
+    .lte("datum", end)
+  return count ?? 0
 }
 
 export async function addBonusAction(

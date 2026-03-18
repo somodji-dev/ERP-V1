@@ -7,6 +7,7 @@ import { ArrowLeft, FileText, Palette, ThermometerSun } from "lucide-react"
 import { format } from "date-fns"
 import { srLatn } from "date-fns/locale"
 import { formatCurrency } from "@/lib/utils/format"
+import { getGODaysUsed, getBolovanjeDaysUsed } from "@/app/actions/sati"
 
 type Props = { params: Promise<{ id: string }> }
 
@@ -22,6 +23,11 @@ export default async function RadnikProfilPage({ params }: Props) {
   if (error || !employee) {
     notFound()
   }
+
+  const [goDaysUsed, bolovanjeDaysUsed] = await Promise.all([
+    getGODaysUsed(id),
+    getBolovanjeDaysUsed(id, new Date().getFullYear()),
+  ])
 
   const datumZaposlenjaFormatted = employee.datum_zaposlenja
     ? format(new Date(employee.datum_zaposlenja), "dd.MM.yyyy", { locale: srLatn })
@@ -89,7 +95,7 @@ export default async function RadnikProfilPage({ params }: Props) {
           </CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-[#6B7280]">
-          Pregled fonda i iskorišćenih dana biće dostupan u sledećoj fazi (unos sati).
+          Iskorišćeno: {goDaysUsed} dana u tekućem periodu.
         </CardContent>
       </Card>
 
@@ -101,7 +107,7 @@ export default async function RadnikProfilPage({ params }: Props) {
           </CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-[#6B7280]">
-          Evidencija bolovanja biće dostupna uz unos radnih sati.
+          Iskorišćeno: {bolovanjeDaysUsed} dana u {new Date().getFullYear()}.
         </CardContent>
       </Card>
 

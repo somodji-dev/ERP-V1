@@ -62,7 +62,13 @@ const MESECI = [
 ]
 
 type Employee = { id: string; ime: string; prezime: string }
-type DanUnos = { datum: string; redovni: number; prekovremeni: number }
+type DanUnos = {
+  datum: string
+  redovni: number
+  prekovremeni: number
+  godisnji?: boolean
+  bolovanje?: boolean
+}
 
 function formatDatum(d: string): string {
   const [y, m, day] = d.split("-").map(Number)
@@ -102,15 +108,32 @@ export function UnosSatiClient({ employees }: { employees: Employee[] }) {
         getAdvancesForMonth(employeeId, mesec, godina),
         getBonusesForMonth(employeeId, mesec, godina),
       ])
-      const byDate: Record<string, { redovni: number; prekovremeni: number }> = {}
+      const byDate: Record<
+        string,
+        { redovni: number; prekovremeni: number; godisnji: boolean; bolovanje: boolean }
+      > = {}
       for (const r of logs) {
-        if (!byDate[r.datum]) byDate[r.datum] = { redovni: 0, prekovremeni: 0 }
+        if (!byDate[r.datum])
+          byDate[r.datum] = { redovni: 0, prekovremeni: 0, godisnji: false, bolovanje: false }
         if (r.tip_sata === "prekovremeno") byDate[r.datum].prekovremeni += Number(r.sati)
+        else if (r.tip_sata === "godisnji") byDate[r.datum].godisnji = true
+        else if (r.tip_sata === "bolovanje") byDate[r.datum].bolovanje = true
         else byDate[r.datum].redovni += Number(r.sati)
       }
       const daniList = getDaniUMesecu(mesec, godina).map((key) => {
-        const v = byDate[key] ?? { redovni: 0, prekovremeni: 0 }
-        return { datum: key, redovni: v.redovni, prekovremeni: v.prekovremeni }
+        const v = byDate[key] ?? {
+          redovni: 0,
+          prekovremeni: 0,
+          godisnji: false,
+          bolovanje: false,
+        }
+        return {
+          datum: key,
+          redovni: v.redovni,
+          prekovremeni: v.prekovremeni,
+          godisnji: v.godisnji,
+          bolovanje: v.bolovanje,
+        }
       })
       setDani(daniList)
       setAdvances(adv)
@@ -135,7 +158,11 @@ export function UnosSatiClient({ employees }: { employees: Employee[] }) {
     toast({ title: "Sati sačuvani." })
   }
 
-  function setDan(index: number, field: "redovni" | "prekovremeni", value: number) {
+  function setDan(
+    index: number,
+    field: "redovni" | "prekovremeni" | "godisnji" | "bolovanje",
+    value: number | boolean
+  ) {
     setDani((prev) => {
       const next = [...prev]
       next[index] = { ...next[index], [field]: value }
@@ -169,6 +196,8 @@ export function UnosSatiClient({ employees }: { employees: Employee[] }) {
           ...dan,
           redovni: radniDan ? 8 : 0,
           prekovremeni: dan.prekovremeni,
+          godisnji: dan.godisnji,
+          bolovanje: dan.bolovanje,
         }
       })
     )
@@ -302,6 +331,8 @@ export function UnosSatiClient({ employees }: { employees: Employee[] }) {
                     <TableHead className="text-[#6B7280]">Datum</TableHead>
                     <TableHead className="text-[#6B7280] w-32">Redovni (h)</TableHead>
                     <TableHead className="text-[#6B7280] w-32">Prekovremeni (h)</TableHead>
+                    <TableHead className="text-[#6B7280] w-20 text-center">GO</TableHead>
+                    <TableHead className="text-[#6B7280] w-24 text-center">Bolovanje</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -326,6 +357,24 @@ export function UnosSatiClient({ employees }: { employees: Employee[] }) {
                           className="w-24 border-[#E5E7EB] h-9"
                           value={dan.prekovremeni || ""}
                           onChange={(e) => setDan(i, "prekovremeni", parseFloat(e.target.value) || 0)}
+                        />
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <input
+                          type="checkbox"
+                          checked={!!dan.godisnji}
+                          onChange={(e) => setDan(i, "godisnji", e.target.checked)}
+                          className="h-4 w-4 rounded border-[#E5E7EB]"
+                          title="Godišnji odmor"
+                        />
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <input
+                          type="checkbox"
+                          checked={!!dan.bolovanje}
+                          onChange={(e) => setDan(i, "bolovanje", e.target.checked)}
+                          className="h-4 w-4 rounded border-[#E5E7EB]"
+                          title="Bolovanje"
                         />
                       </TableCell>
                     </TableRow>
