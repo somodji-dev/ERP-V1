@@ -12,6 +12,7 @@ type KPICardProps = {
   title: string
   value: string | number
   change?: KPICardChange | null
+  yoyChange?: KPICardChange | null
   subtitle?: string
   icon: React.ReactNode
   valuePrefix?: string
@@ -24,6 +25,7 @@ export function KPICard({
   title,
   value,
   change,
+  yoyChange,
   subtitle,
   icon,
   valuePrefix = "",
@@ -67,6 +69,22 @@ export function KPICard({
         </p>
       ) : subtitle ? (
         <p className="text-sm text-[#6B7280] mt-2">{subtitle}</p>
+      ) : null}
+      {yoyChange ? (
+        <p
+          className={`text-xs mt-1 flex items-center gap-1 ${
+            yoyChange.isPositive ? "text-[#16A34A]" : "text-[#DC2626]"
+          }`}
+        >
+          {yoyChange.isPositive ? (
+            <ArrowUp className="h-3 w-3" />
+          ) : (
+            <ArrowDown className="h-3 w-3" />
+          )}
+          {yoyChange.percentage > 0 ? "+" : ""}
+          {yoyChange.percentage}%
+          <span className="text-[#6B7280] ml-1">vs prošla godina</span>
+        </p>
       ) : null}
     </>
   )

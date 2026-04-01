@@ -8,6 +8,7 @@ import { startOfMonth, endOfMonth, subMonths, subDays, format } from "date-fns"
 export type DashboardKpiCashFlow = {
   neto: number
   change: { value: number; percentage: number; isPositive: boolean } | null
+  yoyChange: { value: number; percentage: number; isPositive: boolean } | null
   mesec: number
   godina: number
 }
@@ -76,7 +77,7 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   const [kpiCash, chartRaw, currentMonthOrders, prevMonthOrders, prevPrevMonthOrders, lastOrders, ordersForChart] = await Promise.all([
     getLastSnapshotForKpi(),
-    getSnapshotsForChart(12),
+    getSnapshotsForChart(24),
     fetchWorkOrdersInRange(supabase, startCurrent.toISOString().slice(0, 10), endCurrent.toISOString().slice(0, 10)),
     fetchWorkOrdersInRange(supabase, startPrev.toISOString().slice(0, 10), endPrev.toISOString().slice(0, 10)),
     fetchWorkOrdersInRange(supabase, startPrevPrev.toISOString().slice(0, 10), endPrevPrev.toISOString().slice(0, 10)),
@@ -84,7 +85,7 @@ export async function getDashboardData(): Promise<DashboardData> {
     fetchWorkOrdersInRangeForChart(supabase, startChartStr, endChartStr),
   ])
 
-  const chartCashFlow = chartRaw.map((s) => ({
+  const chartCashFlow = chartRaw.slice(-12).map((s) => ({
     label: `${MESECI[s.mesec]} ${String(s.godina).slice(-2)}`,
     cash: s.ukupno_cash,
     dugovanja: s.dugovanja_dobavljaci,
@@ -93,14 +94,37 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   let cashFlow: DashboardKpiCashFlow | null = null
   if (kpiCash) {
-    const prevSnapshot = chartRaw.filter((s) => s.godina === startPrev.getFullYear() && s.mesec === startPrev.getMonth() + 1)[0]
+    // Sortiraj sve snimke hronološki (najstariji prvi)
+    const allSorted = [...chartRaw].sort((a, b) =>
+      a.godina !== b.godina ? a.godina - b.godina : a.mesec - b.mesec
+    )
+    // Pronađi index trenutnog snimka u sortiranom nizu
+    const currentIdx = allSorted.findIndex(
+      (s) => s.mesec === kpiCash.mesec && s.godina === kpiCash.godina
+    )
+    // Prethodni mesec = snimak neposredno pre trenutnog
+    const prevSnapshot = currentIdx > 0 ? allSorted[currentIdx - 1] : null
     const prevNeto = prevSnapshot?.neto_cash_flow ?? 0
-    const change = prevNeto !== 0
+    const change = prevSnapshot && prevNeto !== 0
       ? { value: kpiCash.neto_cash_flow - prevNeto, percentage: Math.round(((kpiCash.neto_cash_flow - prevNeto) / prevNeto) * 100), isPositive: kpiCash.neto_cash_flow >= prevNeto }
       : null
+
+    // YoY: isti mesec prošle godine, ili najbliži pre njega
+    const targetYoyGodina = kpiCash.godina - 1
+    const yoySnapshot =
+      allSorted.find((s) => s.godina === targetYoyGodina && s.mesec === kpiCash.mesec)
+      ?? [...allSorted].reverse().find((s) =>
+        s.godina < kpiCash.godina || (s.godina === targetYoyGodina && s.mesec <= kpiCash.mesec)
+      )
+    const yoyNeto = yoySnapshot?.neto_cash_flow ?? 0
+    const yoyChange = yoySnapshot && yoyNeto !== 0 && (yoySnapshot.godina !== kpiCash.godina || yoySnapshot.mesec !== kpiCash.mesec)
+      ? { value: kpiCash.neto_cash_flow - yoyNeto, percentage: Math.round(((kpiCash.neto_cash_flow - yoyNeto) / yoyNeto) * 100), isPositive: kpiCash.neto_cash_flow >= yoyNeto }
+      : null
+
     cashFlow = {
       neto: kpiCash.neto_cash_flow,
       change,
+      yoyChange,
       mesec: kpiCash.mesec,
       godina: kpiCash.godina,
     }

@@ -84,6 +84,7 @@ export default async function DashboardPage() {
           valueSuffix=" RSD"
           formatAsCurrency
           change={data.cashFlow?.change ?? undefined}
+          yoyChange={data.cashFlow?.yoyChange ?? undefined}
           subtitle={data.cashFlow ? `${MESECI[data.cashFlow.mesec]} ${data.cashFlow.godina}` : "Nema snimaka"}
           icon={<TrendingUp className="h-5 w-5" />}
           href="/analitika/cash-flow"
