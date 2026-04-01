@@ -63,10 +63,6 @@ export function CashFlowChartWithRange({
   }
 
   useEffect(() => {
-    if (rangeType === "12") {
-      setChartData(initialData)
-      return
-    }
     loadChart()
   }, [rangeType])
 
