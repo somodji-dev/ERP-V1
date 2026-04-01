@@ -90,6 +90,19 @@ status                text DEFAULT 'nacrt'  -- 'nacrt' | 'finalizovan' | 'isplac
 created_at            timestamp DEFAULT now()
 ```
 
+### `monthly_financials`
+```sql
+id                    uuid PK DEFAULT gen_random_uuid()
+mesec                 integer NOT NULL CHECK (1..12)
+godina                integer NOT NULL
+prihod                numeric NOT NULL DEFAULT 0
+rashod                numeric NOT NULL DEFAULT 0
+napomena              text
+created_by            uuid REFERENCES auth.users
+created_at            timestamp DEFAULT now()
+UNIQUE(mesec, godina)
+```
+
 ### `cash_categories`
 ```sql
 id                    uuid PK DEFAULT gen_random_uuid()

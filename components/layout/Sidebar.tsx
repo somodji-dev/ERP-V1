@@ -12,9 +12,13 @@ const RADNICI_SUB_ITEMS = [
   { href: "/radnici/podesavanja", label: "Podešavanja satnica" },
 ]
 
+const FINANSIJE_SUB_ITEMS = [
+  { href: "/cash-flow", label: "Cash Flow" },
+  { href: "/prihodi-rashodi", label: "Prihodi i Rashodi" },
+]
+
 const NAV_ITEMS = [
   { href: "/dashboard", label: "Dashboard", modul: "dashboard" as const, iconName: "Home" as const },
-  { href: "/cash-flow", label: "Cash Flow", modul: "cashflow" as const, iconName: "TrendingUp" as const },
   { href: "/proizvodnja", label: "Proizvodnja", modul: "proizvodnja" as const, iconName: "ClipboardList" as const },
   { href: "/podesavanja", label: "Podešavanja", modul: "podesavanja" as const, iconName: "Settings" as const },
 ]
@@ -26,6 +30,7 @@ export async function Sidebar() {
   const permissions = await getUserPermissions(user.id)
   const showDashboard = canViewModule(permissions, "dashboard")
   const showRadnici = canViewModule(permissions, "radnici")
+  const showFinansije = canViewModule(permissions, "cashflow")
   const visibleItems = NAV_ITEMS.filter((item) =>
     canViewModule(permissions, item.modul)
   )
@@ -60,6 +65,15 @@ export async function Sidebar() {
                 label="Radnici & Plate"
                 iconName="Users"
                 subItems={RADNICI_SUB_ITEMS}
+              />
+            </li>
+          )}
+          {showFinansije && (
+            <li>
+              <NavGroup
+                label="Finansije"
+                iconName="Wallet"
+                subItems={FINANSIJE_SUB_ITEMS}
               />
             </li>
           )}

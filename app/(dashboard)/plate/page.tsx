@@ -132,6 +132,16 @@ export default async function PlateListPage() {
                   </TableRow>
                   )
                 })}
+                {/* UKUPNO red */}
+                <TableRow className="border-t-2 border-[#E5E7EB] bg-[#F9FAFB] hover:bg-[#F9FAFB]">
+                  <TableCell className="text-sm font-bold text-[#111827]">UKUPNO</TableCell>
+                  <TableCell />
+                  <TableCell className="text-sm font-bold text-[#111827]">
+                    {formatCurrency(rows.reduce((s, r) => s + Number(r.neto_za_isplatu ?? 0), 0))}
+                  </TableCell>
+                  <TableCell />
+                  <TableCell />
+                </TableRow>
               </TableBody>
             </Table>
           )}

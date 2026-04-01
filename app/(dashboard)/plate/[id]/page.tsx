@@ -108,15 +108,6 @@ export default async function PlateDetailPage({
         </div>
       </div>
 
-      {/* DEBUG — privremeno, obrisati posle */}
-      <div className="mb-4 rounded border border-orange-300 bg-orange-50 p-3 text-xs text-orange-800 print:hidden">
-        <p className="font-bold mb-1">DEBUG podaci iz baze (payroll_reports):</p>
-        <p>topli_obrok_iznos: <strong>{String(report.topli_obrok_iznos ?? "NULL")}</strong></p>
-        <p>broj_radnih_dana: <strong>{String(report.broj_radnih_dana ?? "NULL")}</strong></p>
-        <p>ukupno_bruto: <strong>{String(report.ukupno_bruto)}</strong></p>
-        <p>ukupni_bonusi: <strong>{String(report.ukupni_bonusi)}</strong></p>
-      </div>
-
       <PlatniListic
         employeeName={employeeName}
         pozicija={pozicija}

@@ -3,13 +3,14 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Users, ChevronDown, ChevronRight } from "lucide-react"
+import { Users, Wallet, ChevronDown, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils/cn"
 
-export type NavGroupIconName = "Users"
+export type NavGroupIconName = "Users" | "Wallet"
 
 const ICONS: Record<NavGroupIconName, React.ComponentType<{ className?: string }>> = {
   Users,
+  Wallet,
 }
 
 interface SubItem {
@@ -24,23 +25,19 @@ interface NavGroupProps {
 }
 
 function isSubItemActive(href: string, pathname: string): boolean {
-  if (href === "/radnici") {
-    return pathname === "/radnici" || (pathname.startsWith("/radnici/") && !pathname.startsWith("/radnici/podesavanja"))
-  }
+  if (pathname === href) return true
+  // /radnici/podesavanja je zaseban sub-item, ne match-uj ga na /radnici
+  if (href === "/radnici" && pathname.startsWith("/radnici/") && !pathname.startsWith("/radnici/podesavanja")) return true
   if (href === "/radnici/podesavanja") return pathname === "/radnici/podesavanja"
-  if (href === "/sati") return pathname === "/sati"
-  if (href === "/plate") return pathname === "/plate" || pathname.startsWith("/plate/")
-  return pathname === href || pathname.startsWith(href + "/")
+  // Ostali: match ako pathname počinje sa href/
+  return pathname.startsWith(href + "/")
 }
 
 export function NavGroup({ label, iconName, subItems }: NavGroupProps) {
   const pathname = usePathname()
-  const isGroupActive =
-    pathname === "/radnici" ||
-    pathname.startsWith("/radnici/") ||
-    pathname === "/sati" ||
-    pathname === "/plate" ||
-    pathname.startsWith("/plate/")
+
+  // Grupa je aktivna ako je bilo koji sub-item aktivan
+  const isGroupActive = subItems.some((sub) => isSubItemActive(sub.href, pathname))
 
   const [expanded, setExpanded] = useState(isGroupActive)
 
