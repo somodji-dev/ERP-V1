@@ -6,6 +6,7 @@ import {
   getLatestInventoryCount,
   getInventoryCountItems,
   getInventoryCounts,
+  getActiveEmployees,
 } from "@/app/actions/inventory"
 import { PopisSirovinaClient } from "@/components/inventory/PopisSirovinaClient"
 import type { InventoryRow } from "@/lib/types/inventory"
@@ -16,10 +17,11 @@ export default async function SirovinePage() {
   const permissions = await getUserPermissions(user.id)
   const canEditMaterials = canEdit(permissions, "proizvodnja")
 
-  const [materials, latestCount, allCounts] = await Promise.all([
+  const [materials, latestCount, allCounts, employees] = await Promise.all([
     getRawMaterials(),
     getLatestInventoryCount(),
     getInventoryCounts(),
+    getActiveEmployees(),
   ])
 
   // Učitaj stavke poslednjeg popisa (ako postoji)
@@ -57,6 +59,7 @@ export default async function SirovinePage() {
         latestCountDate={latestCount?.datum ?? null}
         countsCount={allCounts.length}
         canEditMaterials={canEditMaterials}
+        employees={employees}
       />
     </div>
   )

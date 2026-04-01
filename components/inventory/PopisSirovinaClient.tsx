@@ -41,12 +41,14 @@ export function PopisSirovinaClient({
   latestCountDate,
   countsCount,
   canEditMaterials,
+  employees,
 }: {
   rows: InventoryRow[]
   materials: RawMaterial[]
   latestCountDate: string | null
   countsCount: number
   canEditMaterials: boolean
+  employees: { id: string; label: string }[]
 }) {
   const router = useRouter()
   const { toast } = useToast()
@@ -55,7 +57,7 @@ export function PopisSirovinaClient({
   const [dialogOpen, setDialogOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [datum, setDatum] = useState(() => new Date().toISOString().slice(0, 10))
-  const [napomena, setNapomena] = useState("")
+  const [selectedEmployee, setSelectedEmployee] = useState("")
   const [quantities, setQuantities] = useState<Record<string, string>>({})
   const [checks, setChecks] = useState<Record<string, boolean>>({})
 
@@ -78,7 +80,7 @@ export function PopisSirovinaClient({
     setQuantities(q)
     setChecks(c)
     setDatum(new Date().toISOString().slice(0, 10))
-    setNapomena("")
+    setSelectedEmployee("")
     setDialogOpen(true)
   }
 
@@ -94,7 +96,7 @@ export function PopisSirovinaClient({
       iznad_minimuma: checks[m.id] ?? false,
     }))
 
-    const result = await createInventoryCountAction(datum, napomena || null, items)
+    const result = await createInventoryCountAction(datum, selectedEmployee || null, items)
     setIsLoading(false)
     if (result.error) {
       toast({ title: "Greška", description: result.error, variant: "destructive" })
@@ -267,14 +269,17 @@ export function PopisSirovinaClient({
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="popis-napomena">Napomena</Label>
-                <Input
-                  id="popis-napomena"
-                  value={napomena}
-                  onChange={(e) => setNapomena(e.target.value)}
-                  className="border-[#E5E7EB]"
-                  placeholder="Opciono"
-                />
+                <Label htmlFor="popis-radnik">Popisivač</Label>
+                <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
+                  <SelectTrigger id="popis-radnik" className="border-[#E5E7EB]">
+                    <SelectValue placeholder="Izaberi radnika" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {employees.map((emp) => (
+                      <SelectItem key={emp.id} value={emp.id}>{emp.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 

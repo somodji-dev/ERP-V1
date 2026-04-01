@@ -8,14 +8,33 @@ import { getCurrentUser } from "@/lib/auth/user"
 import { getUserPermissions, canEdit } from "@/lib/auth/permissions"
 import type { RawMaterial, InventoryCount } from "@/lib/types/inventory"
 
-/** Sve aktivne sirovine, sortirane po nazivu. */
+/** Aktivni zaposleni za dropdown (id + ime prezime). */
+export async function getActiveEmployees(): Promise<{ id: string; label: string }[]> {
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("employees")
+    .select("id, ime, prezime")
+    .eq("aktivan", true)
+    .order("ime", { ascending: true })
+
+  if (error) {
+    logAppError(error.message, "getActiveEmployees")
+    return []
+  }
+  return (data ?? []).map((r) => ({
+    id: r.id as string,
+    label: `${r.ime ?? ""} ${r.prezime ?? ""}`.trim(),
+  }))
+}
+
+/** Sve aktivne sirovine, sortirane po redosledu. */
 export async function getRawMaterials(): Promise<RawMaterial[]> {
   const supabase = await createClient()
   const { data, error } = await supabase
     .from("raw_materials")
     .select("*")
     .eq("aktivan", true)
-    .order("naziv", { ascending: true })
+    .order("redosled", { ascending: true })
 
   if (error) {
     logAppError(error.message, "getRawMaterials")
@@ -80,7 +99,7 @@ export async function getLatestInventoryCount(): Promise<InventoryCount | null> 
 /** Kreiraj novi popis sa stavkama (količine + iznad_minimuma za svaku sirovinu). */
 export async function createInventoryCountAction(
   datum: string,
-  napomena: string | null,
+  employeeId: string | null,
   items: { raw_material_id: string; kolicina: number; iznad_minimuma: boolean }[]
 ): Promise<{ id?: string; error?: string }> {
   const supabase = await createClient()
@@ -90,7 +109,7 @@ export async function createInventoryCountAction(
 
   const { data: inserted, error: insertErr } = await supabase
     .from("inventory_counts")
-    .insert({ datum, napomena: napomena || null, created_by: user?.id ?? null })
+    .insert({ datum, employee_id: employeeId || null, created_by: user?.id ?? null })
     .select("id")
     .single()
 

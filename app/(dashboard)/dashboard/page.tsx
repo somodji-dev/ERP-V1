@@ -2,7 +2,10 @@ import { redirect } from "next/navigation"
 import { getCurrentUser } from "@/lib/auth/user"
 import { getUserPermissions, canViewModule, getFirstAllowedRoute } from "@/lib/auth/permissions"
 import { getDashboardData } from "@/lib/dashboard/data"
+import { getRawMaterials, getLatestInventoryCount, getInventoryCountItems } from "@/app/actions/inventory"
 import { KPICard } from "@/components/dashboard/KPICard"
+import { CriticalMaterialsCard } from "@/components/dashboard/CriticalMaterialsCard"
+import type { CriticalMaterial } from "@/components/dashboard/CriticalMaterialsCard"
 import { CashFlowChartWithRange } from "@/components/cashflow/CashFlowChartWithRange"
 import { ProductionChart } from "@/components/dashboard/ProductionChart"
 import { RecentOrders } from "@/components/dashboard/RecentOrders"
@@ -32,6 +35,37 @@ export default async function DashboardPage() {
   const dailySorted = data.dailyProductionChart
   const avgLine =
     dailySorted.length > 0 ? dailySorted.reduce((s, d) => s + d.ukupno, 0) / dailySorted.length : undefined
+
+  // Kritične sirovine za dashboard karticu
+  const [allMaterials, latestCount] = await Promise.all([
+    getRawMaterials(),
+    getLatestInventoryCount(),
+  ])
+  let criticalMaterials: CriticalMaterial[] = []
+  let totalIspod = 0
+  if (latestCount) {
+    const countItems = await getInventoryCountItems(latestCount.id)
+    const itemMap = new Map(countItems.map((i) => [i.raw_material_id, i]))
+    const ispod: CriticalMaterial[] = []
+    for (const m of allMaterials) {
+      const item = itemMap.get(m.id)
+      const iznadMinimuma = item?.iznad_minimuma ?? false
+      const kolicina = item ? Number(item.kolicina) : 0
+      if (!iznadMinimuma && kolicina < Number(m.min_kolicina)) {
+        ispod.push({
+          naziv: m.naziv,
+          kolicina,
+          min_kolicina: Number(m.min_kolicina),
+          jedinica: m.jedinica,
+          iznad_minimuma: false,
+        })
+      }
+    }
+    // Sortiraj po razlici (najkritičniji prvi) i uzmi top 3
+    ispod.sort((a, b) => (a.kolicina - a.min_kolicina) - (b.kolicina - b.min_kolicina))
+    totalIspod = ispod.length
+    criticalMaterials = ispod.slice(0, 3)
+  }
 
   return (
     <div>
@@ -72,6 +106,13 @@ export default async function DashboardPage() {
           href="/analitika/radni-nalozi"
         />
       </div>
+
+      {/* Kritične sirovine kartica */}
+      {canViewModule(permissions, "proizvodnja") && (
+        <div className="mt-6">
+          <CriticalMaterialsCard materials={criticalMaterials} totalIspod={totalIspod} />
+        </div>
+      )}
 
       <div className="mt-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
         <div className="rounded-xl border border-[#E5E7EB] bg-white p-6 shadow-sm">

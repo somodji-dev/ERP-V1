@@ -7,6 +7,7 @@ export type RawMaterial = {
   naziv: string
   jedinica: string
   min_kolicina: number
+  redosled: number
   aktivan: boolean
   created_at?: string
 }
@@ -14,6 +15,7 @@ export type RawMaterial = {
 export type InventoryCount = {
   id: string
   datum: string
+  employee_id: string | null
   napomena: string | null
   created_by: string | null
   created_at?: string
