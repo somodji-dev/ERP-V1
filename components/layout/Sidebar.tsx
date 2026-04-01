@@ -17,10 +17,9 @@ const FINANSIJE_SUB_ITEMS = [
   { href: "/prihodi-rashodi", label: "Prihodi i Rashodi" },
 ]
 
-const NAV_ITEMS = [
-  { href: "/dashboard", label: "Dashboard", modul: "dashboard" as const, iconName: "Home" as const },
-  { href: "/proizvodnja", label: "Proizvodnja", modul: "proizvodnja" as const, iconName: "ClipboardList" as const },
-  { href: "/podesavanja", label: "Podešavanja", modul: "podesavanja" as const, iconName: "Settings" as const },
+const PROIZVODNJA_SUB_ITEMS = [
+  { href: "/proizvodnja", label: "Radni nalozi" },
+  { href: "/proizvodnja/sirovine", label: "Popis sirovina" },
 ]
 
 export async function Sidebar() {
@@ -31,9 +30,8 @@ export async function Sidebar() {
   const showDashboard = canViewModule(permissions, "dashboard")
   const showRadnici = canViewModule(permissions, "radnici")
   const showFinansije = canViewModule(permissions, "cashflow")
-  const visibleItems = NAV_ITEMS.filter((item) =>
-    canViewModule(permissions, item.modul)
-  )
+  const showProizvodnja = canViewModule(permissions, "proizvodnja")
+  const showPodesavanja = canViewModule(permissions, "podesavanja")
 
   return (
     <aside
@@ -77,13 +75,20 @@ export async function Sidebar() {
               />
             </li>
           )}
-          {visibleItems
-            .filter((item) => item.href !== "/dashboard")
-            .map((item) => (
-              <li key={item.href}>
-                <NavItem href={item.href} label={item.label} iconName={item.iconName} />
-              </li>
-            ))}
+          {showProizvodnja && (
+            <li>
+              <NavGroup
+                label="Proizvodnja"
+                iconName="ClipboardList"
+                subItems={PROIZVODNJA_SUB_ITEMS}
+              />
+            </li>
+          )}
+          {showPodesavanja && (
+            <li>
+              <NavItem href="/podesavanja" label="Podešavanja" iconName="Settings" />
+            </li>
+          )}
         </ul>
       </nav>
 

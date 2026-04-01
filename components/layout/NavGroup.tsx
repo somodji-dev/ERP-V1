@@ -3,14 +3,15 @@
 import { useState, useEffect } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
-import { Users, Wallet, ChevronDown, ChevronRight } from "lucide-react"
+import { Users, Wallet, ClipboardList, ChevronDown, ChevronRight } from "lucide-react"
 import { cn } from "@/lib/utils/cn"
 
-export type NavGroupIconName = "Users" | "Wallet"
+export type NavGroupIconName = "Users" | "Wallet" | "ClipboardList"
 
 const ICONS: Record<NavGroupIconName, React.ComponentType<{ className?: string }>> = {
   Users,
   Wallet,
+  ClipboardList,
 }
 
 interface SubItem {

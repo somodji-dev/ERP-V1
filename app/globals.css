@@ -66,4 +66,20 @@
     font-size: 11pt;
     line-height: 1.4;
   }
+  /* Popis sirovina — A4 */
+  #popis-sirovine-print,
+  #popis-sirovine-print * {
+    visibility: visible;
+  }
+  #popis-sirovine-print {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    max-width: 100%;
+    padding: 0;
+    margin: 0;
+    font-size: 9pt;
+    line-height: 1.3;
+  }
 }
