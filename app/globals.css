@@ -37,8 +37,17 @@
   }
 }
 
-/* Štampa platnog izveštaja — samo sadržaj na A4 */
+/* Štampa platnog izveštaja — čist A4 */
 @media print {
+  @page {
+    size: A4;
+    margin: 15mm;
+  }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: white;
+  }
   body * {
     visibility: hidden;
   }
@@ -50,9 +59,11 @@
     position: absolute;
     left: 0;
     top: 0;
-    width: 210mm;
-    max-width: 210mm;
-    padding: 20mm;
-    font-size: 12pt;
+    width: 100%;
+    max-width: 100%;
+    padding: 0;
+    margin: 0;
+    font-size: 11pt;
+    line-height: 1.4;
   }
 }

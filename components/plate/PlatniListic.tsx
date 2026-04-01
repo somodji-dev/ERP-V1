@@ -69,11 +69,10 @@ export function PlatniListic({
   return (
     <div
       id="platni-izvestaj-print"
-      className="mx-auto w-full max-w-[210mm] rounded-xl border border-[#E5E7EB] bg-white p-5 shadow-sm print:max-w-none print:shadow-none print:border-0"
+      className="mx-auto w-full max-w-[210mm] rounded-xl border border-[#E5E7EB] bg-white p-5 shadow-sm print:max-w-none print:shadow-none print:border-0 print:rounded-none print:p-0"
       style={{ fontFamily: "Inter, system-ui, sans-serif" }}
     >
-      {/* A4 margine za štampu (20mm) — padding u @media print u globals.css */}
-      <div className="print:min-h-[277mm]">
+      <div className="print:min-h-[257mm]">
         {/* Header */}
         <header className="mb-6 text-center">
           <div className="mb-2 text-[10px] text-[#6B7280]">[LOGO]</div>
@@ -192,19 +191,6 @@ export function PlatniListic({
           >
             <span>NETO ZA ISPLATU:</span>
             <span className="tabular-nums">{formatCurrency(netoZaIsplatu)}</span>
-          </div>
-        </div>
-
-        {/* Datum i potpisi */}
-        <div className="mt-8 text-sm text-[#6B7280]">
-          <p className="mb-6">Datum: ______________</p>
-          <div className="flex justify-between gap-8">
-            <div className="flex-1 border-b border-[#E5E7EB] pb-1">
-              Potpis poslodavca
-            </div>
-            <div className="flex-1 border-b border-[#E5E7EB] pb-1">
-              Potpis radnika
-            </div>
           </div>
         </div>
 
