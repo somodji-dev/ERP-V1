@@ -53,7 +53,6 @@ export function PopisSirovinaClient({
   const router = useRouter()
   const { toast } = useToast()
 
-  // Popis dialog state
   const [dialogOpen, setDialogOpen] = useState(false)
   const [isLoading, setIsLoading] = useState(false)
   const [datum, setDatum] = useState(() => new Date().toISOString().slice(0, 10))
@@ -61,7 +60,6 @@ export function PopisSirovinaClient({
   const [quantities, setQuantities] = useState<Record<string, string>>({})
   const [checks, setChecks] = useState<Record<string, boolean>>({})
 
-  // Admin edit dialog state
   const [editDialogOpen, setEditDialogOpen] = useState(false)
   const [editMaterial, setEditMaterial] = useState<RawMaterial | null>(null)
   const [editMin, setEditMin] = useState("")
@@ -87,7 +85,6 @@ export function PopisSirovinaClient({
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setIsLoading(true)
-
     const items = materials.map((m) => ({
       raw_material_id: m.id,
       kolicina: checks[m.id]
@@ -95,7 +92,6 @@ export function PopisSirovinaClient({
         : Number(String(quantities[m.id] ?? "0").replace(",", ".")) || 0,
       iznad_minimuma: checks[m.id] ?? false,
     }))
-
     const result = await createInventoryCountAction(datum, selectedEmployee || null, items)
     setIsLoading(false)
     if (result.error) {
@@ -143,7 +139,7 @@ export function PopisSirovinaClient({
           {countsCount > 0 && ispodMinimuma > 0 && (
             <div className="flex items-center gap-1.5 rounded-lg border border-[#FCA5A5] bg-[#FEF2F2] px-3 py-1.5 text-sm text-[#DC2626]">
               <AlertTriangle className="h-4 w-4" />
-              {ispodMinimuma} sirovina ispod minimuma
+              {ispodMinimuma} ispod min.
             </div>
           )}
         </div>
@@ -159,10 +155,10 @@ export function PopisSirovinaClient({
         </div>
       </div>
 
-      {/* Tabela popisa */}
+      {/* Tabela popisa — redosled: Sirovina | Razlika | Stanje | Min. */}
       <div
         id="popis-sirovine-print"
-        className="rounded-xl border border-[#E5E7EB] bg-white shadow-sm overflow-x-auto print:rounded-none print:border-0 print:shadow-none"
+        className="rounded-xl border border-[#E5E7EB] bg-white shadow-sm print:rounded-none print:border-0 print:shadow-none"
       >
         <div className="hidden print:block print:mb-4 print:text-center">
           <h1 className="text-lg font-bold">POPIS SIROVINA</h1>
@@ -176,18 +172,17 @@ export function PopisSirovinaClient({
         <table className="w-full text-sm print:text-[9pt]">
           <thead>
             <tr className="border-b border-[#E5E7EB] bg-gray-50 text-left text-[#6B7280] print:bg-transparent">
-              <th className="px-4 py-2.5 font-medium print:px-2 print:py-1 w-8 print:w-6">#</th>
-              <th className="px-4 py-2.5 font-medium print:px-2 print:py-1">Sirovina</th>
-              <th className="px-4 py-2.5 font-medium text-right print:px-2 print:py-1">Min. količina</th>
-              <th className="px-4 py-2.5 font-medium text-right print:px-2 print:py-1">Stanje</th>
-              <th className="px-4 py-2.5 font-medium text-right print:px-2 print:py-1">Razlika</th>
+              <th className="px-3 py-2.5 font-medium print:px-2 print:py-1">Sirovina</th>
+              <th className="px-2 py-2.5 font-medium text-right print:px-1 print:py-1 w-20">Razlika</th>
+              <th className="px-2 py-2.5 font-medium text-right print:px-1 print:py-1 w-24">Stanje</th>
+              <th className="px-2 py-2.5 font-medium text-right print:px-1 print:py-1 w-20">Min.</th>
               {canEditMaterials && (
-                <th className="px-4 py-2.5 font-medium text-right print:hidden w-16"></th>
+                <th className="px-1 py-2.5 print:hidden w-10"></th>
               )}
             </tr>
           </thead>
           <tbody>
-            {rows.map((row, idx) => {
+            {rows.map((row) => {
               const razlika = row.kolicina - Number(row.min_kolicina)
               return (
                 <tr
@@ -199,35 +194,32 @@ export function PopisSirovinaClient({
                       : "hover:bg-[#F9FAFB]"
                   )}
                 >
-                  <td className="px-4 py-2 print:px-2 print:py-0.5 text-[#6B7280] tabular-nums">
-                    {idx + 1}
-                  </td>
-                  <td className={cn("px-4 py-2 print:px-2 print:py-0.5", row.ispod_minimuma ? "text-[#DC2626]" : "text-[#111827]")}>
+                  <td className={cn("px-3 py-2 print:px-2 print:py-0.5", row.ispod_minimuma ? "text-[#DC2626]" : "text-[#111827]")}>
                     {row.naziv}
                   </td>
-                  <td className="px-4 py-2 print:px-2 print:py-0.5 text-right tabular-nums">
-                    {fmtKol(Number(row.min_kolicina), row.jedinica)}
+                  <td className={cn("px-2 py-2 print:px-1 print:py-0.5 text-right tabular-nums text-xs", row.ispod_minimuma ? "text-[#DC2626] font-medium" : razlika >= 0 || row.iznad_minimuma ? "text-[#16A34A]" : "")}>
+                    {countsCount === 0 ? "—" : row.iznad_minimuma ? "—" : (razlika >= 0 ? "+" : "") + fmtKol(razlika, row.jedinica)}
                   </td>
-                  <td className={cn("px-4 py-2 print:px-2 print:py-0.5 text-right tabular-nums", row.ispod_minimuma ? "text-[#DC2626] font-medium" : "text-[#111827]")}>
+                  <td className={cn("px-2 py-2 print:px-1 print:py-0.5 text-right tabular-nums text-xs", row.ispod_minimuma ? "text-[#DC2626] font-medium" : "text-[#111827]")}>
                     {countsCount === 0 ? "—" : row.iznad_minimuma ? (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-[#D1FAE5] px-2 py-0.5 text-xs font-medium text-[#16A34A]">
-                        <Check className="h-3 w-3" />
-                        Dovoljno
+                      <span className="inline-flex items-center gap-0.5 rounded-full bg-[#D1FAE5] px-1.5 py-0.5 text-[10px] font-medium text-[#16A34A]">
+                        <Check className="h-2.5 w-2.5" />
+                        OK
                       </span>
                     ) : fmtKol(row.kolicina, row.jedinica)}
                   </td>
-                  <td className={cn("px-4 py-2 print:px-2 print:py-0.5 text-right tabular-nums", row.ispod_minimuma ? "text-[#DC2626] font-medium" : razlika >= 0 || row.iznad_minimuma ? "text-[#16A34A]" : "")}>
-                    {countsCount === 0 ? "—" : row.iznad_minimuma ? "—" : (razlika >= 0 ? "+" : "") + fmtKol(razlika, row.jedinica)}
+                  <td className="px-2 py-2 print:px-1 print:py-0.5 text-right tabular-nums text-xs text-[#6B7280]">
+                    {fmtKol(Number(row.min_kolicina), row.jedinica)}
                   </td>
                   {canEditMaterials && (
-                    <td className="px-4 py-2 text-right print:hidden">
+                    <td className="px-1 py-2 text-right print:hidden">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => openEditMaterial(row)}
                         className="h-7 w-7 p-0"
                       >
-                        <Pencil className="h-3.5 w-3.5 text-[#6B7280]" />
+                        <Pencil className="h-3 w-3 text-[#6B7280]" />
                       </Button>
                     </td>
                   )}
@@ -250,29 +242,29 @@ export function PopisSirovinaClient({
         </div>
       )}
 
-      {/* Dialog za novi popis */}
+      {/* Dialog za novi popis — mobilno prilagođen */}
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent className="border-[#E5E7EB] bg-white shadow-md rounded-xl max-w-2xl max-h-[85vh] overflow-y-auto">
+        <DialogContent className="border-[#E5E7EB] bg-white shadow-md rounded-xl max-w-lg w-[calc(100vw-2rem)] max-h-[85vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle>Novi popis sirovina</DialogTitle>
+            <DialogTitle>Novi popis</DialogTitle>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="popis-datum">Datum popisa</Label>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label htmlFor="popis-datum" className="text-xs">Datum</Label>
                 <Input
                   id="popis-datum"
                   type="date"
                   value={datum}
                   onChange={(e) => setDatum(e.target.value)}
-                  className="border-[#E5E7EB]"
+                  className="border-[#E5E7EB] h-9 text-sm"
                 />
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="popis-radnik">Popisivač</Label>
+              <div className="space-y-1.5">
+                <Label htmlFor="popis-radnik" className="text-xs">Popisivač</Label>
                 <Select value={selectedEmployee} onValueChange={setSelectedEmployee}>
-                  <SelectTrigger id="popis-radnik" className="border-[#E5E7EB]">
-                    <SelectValue placeholder="Izaberi radnika" />
+                  <SelectTrigger id="popis-radnik" className="border-[#E5E7EB] h-9 text-sm">
+                    <SelectValue placeholder="Radnik" />
                   </SelectTrigger>
                   <SelectContent>
                     {employees.map((emp) => (
@@ -287,10 +279,9 @@ export function PopisSirovinaClient({
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-[#E5E7EB] bg-gray-50 text-left text-[#6B7280]">
-                    <th className="px-3 py-2 font-medium">Sirovina</th>
-                    <th className="px-3 py-2 font-medium text-right w-24">Min.</th>
-                    <th className="px-3 py-2 font-medium text-center w-20">Dovoljno</th>
-                    <th className="px-3 py-2 font-medium w-32">Količina</th>
+                    <th className="px-2 py-1.5 font-medium text-xs">Sirovina</th>
+                    <th className="px-1 py-1.5 font-medium text-center text-xs w-8">✓</th>
+                    <th className="px-1 py-1.5 font-medium text-xs w-24">Količina</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -298,11 +289,11 @@ export function PopisSirovinaClient({
                     const isChecked = checks[m.id] ?? false
                     return (
                       <tr key={m.id} className="border-b border-[#E5E7EB]/70">
-                        <td className="px-3 py-1.5 text-[#111827]">{m.naziv}</td>
-                        <td className="px-3 py-1.5 text-right text-[#6B7280] tabular-nums">
-                          {Number(m.min_kolicina).toLocaleString("sr-RS")} {m.jedinica}
+                        <td className="px-2 py-1 text-xs text-[#111827]">
+                          <div>{m.naziv}</div>
+                          <div className="text-[10px] text-[#9CA3AF]">min {Number(m.min_kolicina).toLocaleString("sr-RS")} {m.jedinica}</div>
                         </td>
-                        <td className="px-3 py-1.5 text-center">
+                        <td className="px-1 py-1 text-center">
                           <input
                             type="checkbox"
                             checked={isChecked}
@@ -312,7 +303,7 @@ export function PopisSirovinaClient({
                             className="h-4 w-4 rounded border-[#D1D5DB] text-[#2563EB] focus:ring-[#2563EB]"
                           />
                         </td>
-                        <td className="px-3 py-1.5">
+                        <td className="px-1 py-1">
                           <Input
                             type="text"
                             inputMode="decimal"
@@ -323,7 +314,7 @@ export function PopisSirovinaClient({
                               setQuantities((q) => ({ ...q, [m.id]: e.target.value }))
                             }
                             className={cn(
-                              "h-8 border-[#E5E7EB] text-right tabular-nums",
+                              "h-7 text-xs border-[#E5E7EB] text-right tabular-nums",
                               isChecked && "bg-[#F3F4F6] opacity-50"
                             )}
                           />
@@ -335,11 +326,11 @@ export function PopisSirovinaClient({
               </table>
             </div>
 
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>
+            <DialogFooter className="gap-2 sm:gap-0">
+              <Button type="button" variant="outline" onClick={() => setDialogOpen(false)} className="text-sm">
                 Otkaži
               </Button>
-              <Button type="submit" disabled={isLoading} className="bg-[#2563EB] hover:bg-[#1D4ED8]">
+              <Button type="submit" disabled={isLoading} className="bg-[#2563EB] hover:bg-[#1D4ED8] text-sm">
                 {isLoading ? (
                   <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Čuvanje...</>
                 ) : (
@@ -351,9 +342,9 @@ export function PopisSirovinaClient({
         </DialogContent>
       </Dialog>
 
-      {/* Admin edit dialog za min. količinu */}
+      {/* Admin edit dialog */}
       <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent className="border-[#E5E7EB] bg-white shadow-md rounded-xl max-w-sm">
+        <DialogContent className="border-[#E5E7EB] bg-white shadow-md rounded-xl max-w-sm w-[calc(100vw-2rem)]">
           <DialogHeader>
             <DialogTitle>Izmena: {editMaterial?.naziv}</DialogTitle>
           </DialogHeader>
