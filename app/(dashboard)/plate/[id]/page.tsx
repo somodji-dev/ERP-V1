@@ -65,10 +65,27 @@ export default async function PlateDetailPage({
   ]
   const ukupnoSatiIznos = satiRows.reduce((sum, row) => sum + row.iznos, 0)
 
-  const dodaci: DodatakRed[] = bonuses.length > 0
-    ? bonuses.map((b) => ({ label: b.opis ? `Bonus (${b.opis})` : "Bonus", iznos: Number(b.iznos) }))
-    : (r(report.ukupni_bonusi) > 0 ? [{ label: "Bonusi", iznos: r(report.ukupni_bonusi) }] : [])
-  const ukupnoDodaci = r(report.ukupni_bonusi)
+  const topliObrokIznos = r(report.topli_obrok_iznos)
+  const brojRadnihDana = r(report.broj_radnih_dana)
+
+  const dodaci: DodatakRed[] = []
+  if (topliObrokIznos > 0) {
+    dodaci.push({
+      label: "Topli obrok",
+      detail: brojRadnihDana > 0
+        ? `${brojRadnihDana} dana × ${Math.round(topliObrokIznos / brojRadnihDana)}`
+        : undefined,
+      iznos: topliObrokIznos,
+    })
+  }
+  if (bonuses.length > 0) {
+    for (const b of bonuses) {
+      dodaci.push({ label: b.opis ? `Bonus (${b.opis})` : "Bonus", iznos: Number(b.iznos) })
+    }
+  } else if (r(report.ukupni_bonusi) > 0) {
+    dodaci.push({ label: "Bonusi", iznos: r(report.ukupni_bonusi) })
+  }
+  const ukupnoDodaci = topliObrokIznos + r(report.ukupni_bonusi)
 
   const advancesRows: AkontacijaRed[] = advances.map((a) => ({
     datum: formatAdvanceDatum(a.datum),
@@ -100,6 +117,7 @@ export default async function PlateDetailPage({
         ukupnoSatiIznos={ukupnoSatiIznos}
         dodaci={dodaci}
         ukupnoDodaci={ukupnoDodaci}
+        brojRadnihDana={brojRadnihDana > 0 ? brojRadnihDana : undefined}
         advances={advancesRows}
         ukupnoBruto={r(report.ukupno_bruto)}
         ukupniAvans={r(report.ukupni_avans)}

@@ -80,6 +80,8 @@ bruto_prekovremeno    numeric DEFAULT 0
 bruto_subota          numeric DEFAULT 0
 bruto_nedelja         numeric DEFAULT 0
 bruto_praznik         numeric DEFAULT 0
+broj_radnih_dana      integer DEFAULT 0
+topli_obrok_iznos     numeric DEFAULT 0
 ukupni_bonusi         numeric DEFAULT 0
 ukupno_bruto          numeric DEFAULT 0
 ukupni_avans          numeric DEFAULT 0

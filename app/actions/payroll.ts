@@ -57,6 +57,7 @@ export async function generisiObračunAction(reportId: string): Promise<{ error?
     nedelja_sati: 0,
     praznik_sati: 0,
   }
+  const radniDaniSet = new Set<string>()
   for (const r of logs) {
     const tip = r.tip_sata as string
     const h = Number(r.sati)
@@ -65,17 +66,23 @@ export async function generisiObračunAction(reportId: string): Promise<{ error?
     else if (tip === "subota") sati.subota_sati += h
     else if (tip === "nedelja") sati.nedelja_sati += h
     else if (tip === "praznik") sati.praznik_sati += h
+    // Svaki dan kad je radnik radio broji se za topli obrok
+    if (h > 0 && tip !== "godisnji" && tip !== "bolovanje") {
+      radniDaniSet.add(r.datum as string)
+    }
   }
+  const brojRadnihDana = radniDaniSet.size
 
   const brutoRedovni = sati.redovni_sati * (rates.redovni ?? 0)
   const brutoPrekovremeno = sati.prekovremeni_sati * (rates.prekovremeno ?? 0)
   const brutoSubota = sati.subota_sati * (rates.subota ?? 0)
   const brutoNedelja = sati.nedelja_sati * (rates.nedelja ?? 0)
   const brutoPraznik = sati.praznik_sati * (rates.praznik ?? 0)
+  const topliObrokIznos = brojRadnihDana * (rates.topli_obrok ?? 0)
   const ukupniBonusi = bonuses.reduce((s, b) => s + Number(b.iznos), 0)
   const ukupniAvans = advances.reduce((s, a) => s + Number(a.iznos), 0)
   const ukupnoBruto =
-    brutoRedovni + brutoPrekovremeno + brutoSubota + brutoNedelja + brutoPraznik + ukupniBonusi
+    brutoRedovni + brutoPrekovremeno + brutoSubota + brutoNedelja + brutoPraznik + topliObrokIznos + ukupniBonusi
   const netoZaIsplatu = ukupnoBruto - ukupniAvans
 
   const { error: updateErr } = await supabase
@@ -91,6 +98,8 @@ export async function generisiObračunAction(reportId: string): Promise<{ error?
       bruto_subota: brutoSubota,
       bruto_nedelja: brutoNedelja,
       bruto_praznik: brutoPraznik,
+      broj_radnih_dana: brojRadnihDana,
+      topli_obrok_iznos: topliObrokIznos,
       ukupni_bonusi: ukupniBonusi,
       ukupno_bruto: ukupnoBruto,
       ukupni_avans: ukupniAvans,
