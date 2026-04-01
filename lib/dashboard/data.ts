@@ -64,6 +64,8 @@ export async function getDashboardData(): Promise<DashboardData> {
   const endCurrent = endOfMonth(now)
   const startPrev = startOfMonth(subMonths(now, 1))
   const endPrev = endOfMonth(subMonths(now, 1))
+  const startPrevPrev = startOfMonth(subMonths(now, 2))
+  const endPrevPrev = endOfMonth(subMonths(now, 2))
 
   const supabase = await createClient()
 
@@ -72,11 +74,12 @@ export async function getDashboardData(): Promise<DashboardData> {
   const startChartStr = startChart.toISOString().slice(0, 10)
   const endChartStr = endChart.toISOString().slice(0, 10)
 
-  const [kpiCash, chartRaw, currentMonthOrders, prevMonthOrders, lastOrders, ordersForChart] = await Promise.all([
+  const [kpiCash, chartRaw, currentMonthOrders, prevMonthOrders, prevPrevMonthOrders, lastOrders, ordersForChart] = await Promise.all([
     getLastSnapshotForKpi(),
     getSnapshotsForChart(12),
     fetchWorkOrdersInRange(supabase, startCurrent.toISOString().slice(0, 10), endCurrent.toISOString().slice(0, 10)),
     fetchWorkOrdersInRange(supabase, startPrev.toISOString().slice(0, 10), endPrev.toISOString().slice(0, 10)),
+    fetchWorkOrdersInRange(supabase, startPrevPrev.toISOString().slice(0, 10), endPrevPrev.toISOString().slice(0, 10)),
     fetchRecentOrders(supabase, 10),
     fetchWorkOrdersInRangeForChart(supabase, startChartStr, endChartStr),
   ])
@@ -103,37 +106,40 @@ export async function getDashboardData(): Promise<DashboardData> {
     }
   }
 
-  const currentKg = currentMonthOrders.reduce((sum, o) => sum + o.ukupnoKg, 0)
+  // Kartica Proizvodnja: prošli mesec vs pretprošli (tekući je nepotpun)
   const prevKg = prevMonthOrders.reduce((sum, o) => sum + o.ukupnoKg, 0)
-  const shiftsCurrent = Math.max(1, currentMonthOrders.length)
+  const prevPrevKg = prevPrevMonthOrders.reduce((sum, o) => sum + o.ukupnoKg, 0)
   const shiftsPrev = Math.max(1, prevMonthOrders.length)
   const proizvodnja: DashboardKpiProizvodnja | null =
-    currentMonthOrders.length > 0
+    prevMonthOrders.length > 0
       ? {
-          ukupnoKg: Math.round(currentKg * 10) / 10,
-          dailyAverage: Math.round((currentKg / shiftsCurrent) * 10) / 10,
+          ukupnoKg: Math.round(prevKg * 10) / 10,
+          dailyAverage: Math.round((prevKg / shiftsPrev) * 10) / 10,
           change:
-            prevKg > 0
+            prevPrevKg > 0
               ? {
-                  value: currentKg - prevKg,
-                  percentage: Math.round(((currentKg - prevKg) / prevKg) * 100),
-                  isPositive: currentKg >= prevKg,
+                  value: prevKg - prevPrevKg,
+                  percentage: Math.round(((prevKg - prevPrevKg) / prevPrevKg) * 100),
+                  isPositive: prevKg >= prevPrevKg,
                 }
               : null,
-          shiftsInPeriod: currentMonthOrders.length,
+          shiftsInPeriod: prevMonthOrders.length,
         }
       : null
 
-  const currentCount = currentMonthOrders.length
-  const prevCount = prevMonthOrders.length
+  // Kartica Prosečna dnevna proizvodnja: tekući mesec vs prošli
+  const currentKg = currentMonthOrders.reduce((sum, o) => sum + o.ukupnoKg, 0)
+  const shiftsCurrent = Math.max(1, currentMonthOrders.length)
+  const avgCurrent = currentMonthOrders.length > 0 ? Math.round((currentKg / shiftsCurrent) * 10) / 10 : 0
+  const avgPrev = prevMonthOrders.length > 0 ? Math.round((prevKg / shiftsPrev) * 10) / 10 : 0
   const radniNalozi: DashboardKpiRadniNalozi | null = {
-    count: currentCount,
+    count: Math.round(avgCurrent),
     change:
-      prevCount > 0
+      avgPrev > 0
         ? {
-            value: currentCount - prevCount,
-            percentage: Math.round(((currentCount - prevCount) / prevCount) * 100),
-            isPositive: currentCount >= prevCount,
+            value: Math.round(avgCurrent - avgPrev),
+            percentage: Math.round(((avgCurrent - avgPrev) / avgPrev) * 100),
+            isPositive: avgCurrent >= avgPrev,
           }
         : null,
     mesec: now.getMonth() + 1,

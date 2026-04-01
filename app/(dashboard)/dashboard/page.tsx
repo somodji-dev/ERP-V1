@@ -89,19 +89,20 @@ export default async function DashboardPage() {
           href="/analitika/cash-flow"
         />
         <KPICard
-          title="Proizvodnja"
-          value={data.proizvodnja?.dailyAverage ?? 0}
+          title="Proizvodnja (prošli mesec)"
+          value={data.proizvodnja?.ukupnoKg ?? 0}
           valueSuffix=" kg"
           change={data.proizvodnja?.change ?? undefined}
-          subtitle={data.proizvodnja ? `Prosek po smeni (${data.proizvodnja.shiftsInPeriod} smena)` : "Nema podataka"}
+          subtitle={data.proizvodnja ? `${data.proizvodnja.shiftsInPeriod} smena, prosek ${data.proizvodnja.dailyAverage} kg/smena` : "Nema podataka"}
           icon={<Package className="h-5 w-5" />}
           href="/analitika/proizvodnja"
         />
         <KPICard
-          title="Radni nalozi analitika"
+          title="Prosečna dnevna proizvodnja"
           value={data.radniNalozi?.count ?? 0}
+          valueSuffix=" kg"
           change={data.radniNalozi?.change ?? undefined}
-          subtitle={data.radniNalozi ? `${MESECI[data.radniNalozi.mesec]} ${data.radniNalozi.godina}` : "Ovaj mesec"}
+          subtitle={data.radniNalozi ? `Prosek po smeni — ${MESECI[data.radniNalozi.mesec]} ${data.radniNalozi.godina}` : "Ovaj mesec"}
           icon={<ClipboardList className="h-5 w-5" />}
           href="/analitika/radni-nalozi"
         />
