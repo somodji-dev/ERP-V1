@@ -42,6 +42,24 @@ export async function getFinancialYears(): Promise<number[]> {
   return unique
 }
 
+/** Podaci za više godina odjednom (za uporedni grafikon). */
+export async function getFinancialsMultiYear(years: number[]): Promise<MonthlyFinancial[]> {
+  if (years.length === 0) return []
+  const supabase = await createClient()
+  const { data, error } = await supabase
+    .from("monthly_financials")
+    .select("id, mesec, godina, prihod, rashod, napomena, created_at")
+    .in("godina", years)
+    .order("godina", { ascending: true })
+    .order("mesec", { ascending: true })
+
+  if (error) {
+    logAppError(error.message, "getFinancialsMultiYear")
+    return []
+  }
+  return (data ?? []) as MonthlyFinancial[]
+}
+
 /** Upsert (insert ili update) za mesec+godina. */
 export async function upsertFinancialAction(
   mesec: number,

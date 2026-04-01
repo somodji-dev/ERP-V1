@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation"
 import {
   BarChart,
   Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -65,14 +67,20 @@ type FormState = {
   editId?: string
 }
 
+const COMPARE_COLORS = ["#2563EB", "#16A34A", "#F59E0B"]
+
 export function PrihodiRashodiClient({
   initialData,
   godina,
   availableYears,
+  compareData,
+  compareYears,
 }: {
   initialData: MonthlyFinancial[]
   godina: number
   availableYears: number[]
+  compareData: MonthlyFinancial[]
+  compareYears: number[]
 }) {
   const router = useRouter()
   const { toast } = useToast()
@@ -230,6 +238,90 @@ export function PrihodiRashodiClient({
           </ResponsiveContainer>
         </div>
       )}
+
+      {/* Uporedni linijski grafikon bruto profita */}
+      {(() => {
+        // Pripremi podatke: za svaki mesec, profit po godini
+        const compareByYear = new Map<number, Map<number, number>>()
+        for (const row of compareData) {
+          const g = Number(row.godina)
+          const m = Number(row.mesec)
+          const profit = Number(row.prihod) - Number(row.rashod)
+          if (!compareByYear.has(g)) compareByYear.set(g, new Map())
+          compareByYear.get(g)!.set(m, profit)
+        }
+        const lineData = MESECI.map((label, i) => {
+          const m = i + 1
+          const point: Record<string, string | number> = { mesec: label.substring(0, 3) }
+          for (const y of compareYears) {
+            point[String(y)] = compareByYear.get(y)?.get(m) ?? 0
+          }
+          return point
+        })
+
+        function buildUrl(y1: number, y2: number, y3: number) {
+          return `/prihodi-rashodi?godina=${godina}&uporedi=${y1},${y2},${y3}`
+        }
+
+        return (
+          <div className="rounded-xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
+            <h2 className="mb-4 text-sm font-semibold text-[#111827]">
+              Uporedni bruto profit po godinama
+            </h2>
+            <div className="mb-4 flex flex-wrap items-center gap-3">
+              {compareYears.map((y, idx) => (
+                <div key={idx} className="flex items-center gap-2">
+                  <div
+                    className="h-3 w-3 rounded-full"
+                    style={{ backgroundColor: COMPARE_COLORS[idx] }}
+                  />
+                  <Select
+                    value={String(y)}
+                    onValueChange={(v) => {
+                      const next = [...compareYears]
+                      next[idx] = Number(v)
+                      router.push(buildUrl(next[0], next[1], next[2]))
+                    }}
+                  >
+                    <SelectTrigger className="w-[100px] h-8 text-xs border-[#E5E7EB]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {availableYears.map((ay) => (
+                        <SelectItem key={ay} value={String(ay)}>{ay}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              ))}
+            </div>
+            <ResponsiveContainer width="100%" height={320}>
+              <LineChart data={lineData} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                <XAxis dataKey="mesec" tick={{ fontSize: 12 }} />
+                <YAxis tickFormatter={fmtShort} tick={{ fontSize: 12 }} />
+                <Tooltip
+                  formatter={(value: number, name: string) => [formatCurrency(value), name]}
+                  contentStyle={{ borderRadius: 8, border: "1px solid #E5E7EB" }}
+                />
+                <Legend />
+                {compareYears.map((y, idx) => (
+                  <Line
+                    key={y}
+                    type="monotone"
+                    dataKey={String(y)}
+                    name={String(y)}
+                    stroke={COMPARE_COLORS[idx]}
+                    strokeWidth={2}
+                    dot={{ r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+        )
+      })()}
 
       {/* Godišnja sumarna tabela */}
       <div className="rounded-xl border border-[#E5E7EB] bg-white shadow-sm overflow-x-auto">

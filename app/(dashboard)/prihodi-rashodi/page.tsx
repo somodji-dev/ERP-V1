@@ -1,25 +1,29 @@
-import { getFinancials, getFinancialYears } from "@/app/actions/financials"
+import { getFinancials, getFinancialsMultiYear } from "@/app/actions/financials"
 import { PrihodiRashodiClient } from "@/components/financials/PrihodiRashodiClient"
 
 export default async function PrihodiRashodiPage({
   searchParams,
 }: {
-  searchParams: Promise<{ godina?: string }>
+  searchParams: Promise<{ godina?: string; uporedi?: string }>
 }) {
   const params = await searchParams
   const currentYear = new Date().getFullYear()
   const godina = params.godina ? Number(params.godina) : currentYear
 
-  const [data, years] = await Promise.all([
+  // Default uporedne godine: odabrana + 2 prethodne
+  const compareYears = params.uporedi
+    ? params.uporedi.split(",").map(Number).filter((n) => !Number.isNaN(n))
+    : [godina, godina - 1, godina - 2]
+
+  const [data, compareData] = await Promise.all([
     getFinancials(godina),
-    getFinancialYears(),
+    getFinancialsMultiYear(compareYears),
   ])
 
-  // Dodaj tekuću godinu u listu ako ne postoji
-  const allYears = years.includes(currentYear) ? years : [currentYear, ...years]
-  // Dodaj odabranu godinu ako ne postoji
-  const finalYears = allYears.includes(godina) ? allYears : [godina, ...allYears]
-  finalYears.sort((a, b) => b - a)
+  // Sve godine od 2018 do tekuće
+  const START_YEAR = 2018
+  const finalYears: number[] = []
+  for (let y = currentYear; y >= START_YEAR; y--) finalYears.push(y)
 
   return (
     <div>
@@ -31,6 +35,8 @@ export default async function PrihodiRashodiPage({
         initialData={data}
         godina={godina}
         availableYears={finalYears}
+        compareData={compareData}
+        compareYears={compareYears}
       />
     </div>
   )
