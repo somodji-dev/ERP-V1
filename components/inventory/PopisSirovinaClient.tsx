@@ -276,13 +276,13 @@ export function PopisSirovinaClient({
             </div>
 
             <div className="rounded-lg border border-[#E5E7EB] overflow-hidden">
-              <table className="w-full text-xs sm:text-sm">
+              <table className="w-full" style={{ fontSize: "13px" }}>
                 <thead>
                   <tr className="border-b border-[#E5E7EB] bg-gray-50 text-left text-[#6B7280]">
-                    <th className="px-1.5 sm:px-3 py-1.5 font-medium">Sirovina</th>
-                    <th className="px-1 sm:px-2 py-1.5 font-medium text-right w-16 sm:w-24">Min.</th>
-                    <th className="px-1 py-1.5 font-medium text-center w-8">✓</th>
-                    <th className="px-1 sm:px-2 py-1.5 font-medium w-20 sm:w-28">Količina</th>
+                    <th className="px-1 sm:px-3 py-1.5 font-medium">Sirovina</th>
+                    <th className="px-0.5 sm:px-2 py-1.5 font-medium text-right w-[60px] sm:w-24">Min.</th>
+                    <th className="px-0.5 py-1.5 font-medium text-center w-7">✓</th>
+                    <th className="px-0.5 sm:px-2 py-1.5 font-medium w-[72px] sm:w-28">Količina</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -290,11 +290,11 @@ export function PopisSirovinaClient({
                     const isChecked = checks[m.id] ?? false
                     return (
                       <tr key={m.id} className="border-b border-[#E5E7EB]/70">
-                        <td className="px-1.5 sm:px-3 py-1 text-[#111827]">{m.naziv}</td>
-                        <td className="px-1 sm:px-2 py-1 text-right tabular-nums text-[#6B7280]">
+                        <td className="px-1 sm:px-3 py-1 text-[#111827]">{m.naziv}</td>
+                        <td className="px-0.5 sm:px-2 py-1 text-right tabular-nums text-[#6B7280]">
                           {Number(m.min_kolicina).toLocaleString("sr-RS")} {m.jedinica}
                         </td>
-                        <td className="px-1 py-1 text-center">
+                        <td className="px-0.5 py-1 text-center">
                           <input
                             type="checkbox"
                             checked={isChecked}
@@ -304,7 +304,7 @@ export function PopisSirovinaClient({
                             className="h-4 w-4 rounded border-[#D1D5DB] text-[#2563EB] focus:ring-[#2563EB]"
                           />
                         </td>
-                        <td className="px-1 sm:px-2 py-1">
+                        <td className="px-0.5 sm:px-2 py-1">
                           <Input
                             type="text"
                             inputMode="decimal"
@@ -315,7 +315,7 @@ export function PopisSirovinaClient({
                               setQuantities((q) => ({ ...q, [m.id]: e.target.value }))
                             }
                             className={cn(
-                              "h-7 text-xs sm:text-sm border-[#E5E7EB] text-right tabular-nums",
+                              "h-7 text-[13px] sm:text-sm border-[#E5E7EB] text-right tabular-nums",
                               isChecked && "bg-[#F3F4F6] opacity-50"
                             )}
                           />

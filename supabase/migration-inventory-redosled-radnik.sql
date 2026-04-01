@@ -14,7 +14,7 @@ UPDATE raw_materials SET redosled = 9 WHERE naziv = 'Slatka paprika';
 UPDATE raw_materials SET redosled = 10 WHERE naziv = 'Ljuta paprika';
 UPDATE raw_materials SET redosled = 11 WHERE naziv = 'Glutaminat';
 UPDATE raw_materials SET redosled = 12 WHERE naziv = 'Kari';
-UPDATE raw_materials SET redosled = 13 WHERE naziv = 'Oleorezin slatke pap.';
+UPDATE raw_materials SET redosled = 13 WHERE naziv = 'Oleorezin slatke';
 UPDATE raw_materials SET redosled = 14 WHERE naziv = 'Suncokretovo ulje';
 UPDATE raw_materials SET redosled = 15 WHERE naziv = 'Palmino ulje';
 UPDATE raw_materials SET redosled = 16 WHERE naziv = 'Limunska kiselina';

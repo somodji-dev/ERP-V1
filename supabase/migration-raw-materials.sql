@@ -57,7 +57,7 @@ INSERT INTO raw_materials (naziv, jedinica, min_kolicina) VALUES
   ('Ljuta paprika', 'kg', 10),
   ('Glutaminat', 'kg', 25),
   ('Kari', 'kg', 10),
-  ('Oleorezin slatke pap.', 'kutija', 1),
+  ('Oleorezin slatke', 'kutija', 1),
   ('Suncokretovo ulje', 'paket', 3),
   ('Palmino ulje', 'kanta', 20),
   ('Limunska kiselina', 'kg', 25),
