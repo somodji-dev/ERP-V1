@@ -1,3 +1,6 @@
+import { redirect } from "next/navigation"
+import { getCurrentUser } from "@/lib/auth/user"
+import { getUserPermissions, canEdit } from "@/lib/auth/permissions"
 import {
   getRawMaterials,
   getLatestInventoryCount,
@@ -8,6 +11,11 @@ import { PopisSirovinaClient } from "@/components/inventory/PopisSirovinaClient"
 import type { InventoryRow } from "@/lib/types/inventory"
 
 export default async function SirovinePage() {
+  const user = await getCurrentUser()
+  if (!user) redirect("/login")
+  const permissions = await getUserPermissions(user.id)
+  const canEditMaterials = canEdit(permissions, "proizvodnja")
+
   const [materials, latestCount, allCounts] = await Promise.all([
     getRawMaterials(),
     getLatestInventoryCount(),
@@ -15,18 +23,21 @@ export default async function SirovinePage() {
   ])
 
   // Učitaj stavke poslednjeg popisa (ako postoji)
-  let items: { raw_material_id: string; kolicina: number }[] = []
+  let items: { raw_material_id: string; kolicina: number; iznad_minimuma: boolean }[] = []
   if (latestCount) {
     items = await getInventoryCountItems(latestCount.id)
   }
-  const itemMap = new Map(items.map((i) => [i.raw_material_id, Number(i.kolicina)]))
+  const itemMap = new Map(items.map((i) => [i.raw_material_id, i]))
 
   const rows: InventoryRow[] = materials.map((m) => {
-    const kolicina = itemMap.get(m.id) ?? 0
+    const item = itemMap.get(m.id)
+    const kolicina = item ? Number(item.kolicina) : 0
+    const iznadMinimuma = item?.iznad_minimuma ?? false
     return {
       ...m,
       kolicina,
-      ispod_minimuma: kolicina < Number(m.min_kolicina),
+      iznad_minimuma: iznadMinimuma,
+      ispod_minimuma: !iznadMinimuma && kolicina < Number(m.min_kolicina),
     }
   })
 
@@ -45,6 +56,7 @@ export default async function SirovinePage() {
         materials={materials}
         latestCountDate={latestCount?.datum ?? null}
         countsCount={allCounts.length}
+        canEditMaterials={canEditMaterials}
       />
     </div>
   )

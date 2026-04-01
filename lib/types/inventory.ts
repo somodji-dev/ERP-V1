@@ -24,10 +24,12 @@ export type InventoryCountItem = {
   inventory_count_id: string
   raw_material_id: string
   kolicina: number
+  iznad_minimuma: boolean
 }
 
 /** Red za prikaz popisa — sirovina + trenutna količina */
 export type InventoryRow = RawMaterial & {
   kolicina: number
+  iznad_minimuma: boolean
   ispod_minimuma: boolean
 }
