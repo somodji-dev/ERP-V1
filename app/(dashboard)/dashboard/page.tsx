@@ -43,7 +43,8 @@ export default async function DashboardPage() {
   ])
   let criticalMaterials: CriticalMaterial[] = []
   let totalIspod = 0
-  if (latestCount) {
+  const hasInventory = latestCount !== null
+  if (hasInventory) {
     const countItems = await getInventoryCountItems(latestCount.id)
     const itemMap = new Map(countItems.map((i) => [i.raw_material_id, i]))
     const ispod: CriticalMaterial[] = []
@@ -61,7 +62,6 @@ export default async function DashboardPage() {
         })
       }
     }
-    // Sortiraj po razlici (najkritičniji prvi) i uzmi top 3
     ispod.sort((a, b) => (a.kolicina - a.min_kolicina) - (b.kolicina - b.min_kolicina))
     totalIspod = ispod.length
     criticalMaterials = ispod.slice(0, 3)
@@ -110,7 +110,7 @@ export default async function DashboardPage() {
       {/* Kritične sirovine kartica */}
       {canViewModule(permissions, "proizvodnja") && (
         <div className="mt-6">
-          <CriticalMaterialsCard materials={criticalMaterials} totalIspod={totalIspod} />
+          <CriticalMaterialsCard materials={criticalMaterials} totalIspod={totalIspod} hasInventory={hasInventory} />
         </div>
       )}
 

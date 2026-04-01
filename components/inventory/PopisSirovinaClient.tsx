@@ -140,7 +140,7 @@ export function PopisSirovinaClient({
       {/* Akcije */}
       <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
         <div className="flex items-center gap-3">
-          {ispodMinimuma > 0 && (
+          {countsCount > 0 && ispodMinimuma > 0 && (
             <div className="flex items-center gap-1.5 rounded-lg border border-[#FCA5A5] bg-[#FEF2F2] px-3 py-1.5 text-sm text-[#DC2626]">
               <AlertTriangle className="h-4 w-4" />
               {ispodMinimuma} sirovina ispod minimuma

@@ -13,9 +13,11 @@ export type CriticalMaterial = {
 export function CriticalMaterialsCard({
   materials,
   totalIspod,
+  hasInventory,
 }: {
   materials: CriticalMaterial[]
   totalIspod: number
+  hasInventory: boolean
 }) {
   return (
     <Link
@@ -27,7 +29,12 @@ export function CriticalMaterialsCard({
         <AlertTriangle className={cn("h-5 w-5", totalIspod > 0 ? "text-[#DC2626]" : "text-[#9CA3AF]")} />
       </div>
 
-      {totalIspod > 0 ? (
+      {!hasInventory ? (
+        <>
+          <p className="text-2xl font-extrabold text-[#6B7280]">Nema popisa</p>
+          <p className="text-sm text-[#6B7280] mt-2">Kreirajte prvi popis sirovina</p>
+        </>
+      ) : totalIspod > 0 ? (
         <>
           <p className="text-2xl font-extrabold text-[#DC2626]">
             {totalIspod} ispod minimuma

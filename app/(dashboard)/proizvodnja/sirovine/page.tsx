@@ -39,7 +39,7 @@ export default async function SirovinePage() {
       ...m,
       kolicina,
       iznad_minimuma: iznadMinimuma,
-      ispod_minimuma: !iznadMinimuma && kolicina < Number(m.min_kolicina),
+      ispod_minimuma: latestCount !== null && !iznadMinimuma && kolicina < Number(m.min_kolicina),
     }
   })
 
