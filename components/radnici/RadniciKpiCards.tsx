@@ -3,14 +3,19 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Users, Clock, Banknote, AlertCircle } from "lucide-react"
 import { formatCurrency } from "@/lib/utils/format"
 
+const MESECI = ["", "Januar", "Februar", "Mart", "April", "Maj", "Jun", "Jul", "Avgust", "Septembar", "Oktobar", "Novembar", "Decembar"]
+
 export async function RadniciKpiCards() {
   const supabase = await createClient()
   const now = new Date()
-  const mesec = now.getMonth() + 1
-  const godina = now.getFullYear()
+  // Prethodni mesec (obračun se radi na kraju meseca, tekući je nepotpun)
+  const prev = new Date(now.getFullYear(), now.getMonth() - 1, 1)
+  const mesec = prev.getMonth() + 1
+  const godina = prev.getFullYear()
   const startDate = `${godina}-${String(mesec).padStart(2, "0")}-01`
   const lastDay = new Date(godina, mesec, 0).getDate()
   const endDate = `${godina}-${String(mesec).padStart(2, "0")}-${String(lastDay).padStart(2, "0")}`
+  const periodLabel = `${MESECI[mesec]} ${godina}`
 
   let aktivni = 0
   let ukupnoSati = 0
@@ -45,12 +50,15 @@ export async function RadniciKpiCards() {
 
     const { data: payrollRows } = await supabase
       .from("payroll_reports")
-      .select("neto_za_isplatu")
+      .select("neto_za_isplatu, ukupni_avans")
       .eq("mesec", mesec)
       .eq("godina", godina)
       .in("status", ["finalizovan", "isplacen"])
     if (payrollRows?.length) {
-      ukupnoIsplaceno = payrollRows.reduce((sum, r) => sum + Number(r.neto_za_isplatu ?? 0), 0)
+      ukupnoIsplaceno = payrollRows.reduce(
+        (sum, r) => sum + Number(r.neto_za_isplatu ?? 0) + Number(r.ukupni_avans ?? 0),
+        0
+      )
     }
   } catch {
     // RLS ili tabela nedostaje — ostaje 0
@@ -64,19 +72,19 @@ export async function RadniciKpiCards() {
       suffix: "",
     },
     {
-      title: "Ukupno sati (mesec)",
+      title: `Ukupno sati — ${periodLabel}`,
       value: String(Math.round(ukupnoSati * 10) / 10),
       icon: Clock,
       suffix: "h",
     },
     {
-      title: "Ukupno isplaćeno (mesec)",
+      title: `Ukupno isplaćeno — ${periodLabel}`,
       value: formatCurrency(ukupnoIsplaceno),
       icon: Banknote,
       suffix: "",
     },
     {
-      title: "Prekovremeni sati",
+      title: `Prekovremeni sati — ${periodLabel}`,
       value: String(Math.round(prekovremeni * 10) / 10),
       icon: AlertCircle,
       suffix: "h",
