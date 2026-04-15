@@ -15,6 +15,7 @@ const RADNICI_SUB_ITEMS = [
 const FINANSIJE_SUB_ITEMS = [
   { href: "/cash-flow", label: "Cash Flow" },
   { href: "/prihodi-rashodi", label: "Prihodi i Rashodi" },
+  { href: "/dodatni-troskovi", label: "Dodatni troškovi" },
 ]
 
 const PROIZVODNJA_SUB_ITEMS = [
