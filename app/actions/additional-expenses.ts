@@ -87,7 +87,8 @@ export async function getChartData(
       label: `${MESECI[mm.mesec]} ${String(mm.godina).slice(-2)}`,
       neposlovni: exp?.neposlovni ?? 0,
       bankomat: exp?.bankomat ?? 0,
-      neto_cash_flow: cashMap.get(key) ?? 0,
+      // null kad nema snimka za taj mesec — Recharts povezuje okolne tačke
+      neto_cash_flow: cashMap.has(key) ? cashMap.get(key)! : null,
     }
   })
 }

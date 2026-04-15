@@ -18,5 +18,5 @@ export type MonthlyChartPoint = {
   label: string
   neposlovni: number
   bankomat: number
-  neto_cash_flow: number
+  neto_cash_flow: number | null
 }

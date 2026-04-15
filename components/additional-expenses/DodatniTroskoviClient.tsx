@@ -370,7 +370,7 @@ export function DodatniTroskoviClient({
               <Line type="monotone" dataKey="bankomat" name="Bankomat" stroke="#F59E0B" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
             )}
             {showNeto && (
-              <Line type="monotone" dataKey="neto_cash_flow" name="Neto Cash Flow" stroke="#2563EB" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} />
+              <Line type="monotone" dataKey="neto_cash_flow" name="Neto Cash Flow" stroke="#2563EB" strokeWidth={2} dot={{ r: 3 }} activeDot={{ r: 5 }} connectNulls />
             )}
           </LineChart>
         </ResponsiveContainer>
