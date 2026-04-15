@@ -93,7 +93,7 @@ export async function getHygieneChecklistDetail(id: string): Promise<HygieneChec
   const [checklistRes, templatesRes, completionsRes] = await Promise.all([
     supabase
       .from("hygiene_checklists")
-      .select("*, verifikator:employees!verifikator_id(ime, prezime)")
+      .select("*")
       .eq("id", id)
       .maybeSingle(),
     supabase
@@ -103,7 +103,7 @@ export async function getHygieneChecklistDetail(id: string): Promise<HygieneChec
       .order("redosled", { ascending: true }),
     supabase
       .from("hygiene_completions")
-      .select("*, employee:employees(ime, prezime)")
+      .select("*")
       .eq("checklist_id", id)
       .order("datum_uradjeno", { ascending: true }),
   ])
@@ -113,10 +113,30 @@ export async function getHygieneChecklistDetail(id: string): Promise<HygieneChec
     return null
   }
 
-  const cl = checklistRes.data as HygieneChecklist & {
-    verifikator?: { ime: string; prezime: string } | null | Array<{ ime: string; prezime: string }>
+  const cl = checklistRes.data as HygieneChecklist
+
+  // Odvojeno fetch-uj verifikatora i radnike iz completions
+  const employeeIds = new Set<string>()
+  if (cl.verifikator_id) employeeIds.add(cl.verifikator_id)
+  for (const c of completionsRes.data ?? []) {
+    if (c.employee_id) employeeIds.add(c.employee_id as string)
   }
-  const verifikatorRel = Array.isArray(cl.verifikator) ? cl.verifikator[0] ?? null : cl.verifikator ?? null
+
+  const employeeMap = new Map<string, { ime: string; prezime: string }>()
+  if (employeeIds.size > 0) {
+    const { data: empData } = await supabase
+      .from("employees")
+      .select("id, ime, prezime")
+      .in("id", Array.from(employeeIds))
+    for (const e of empData ?? []) {
+      employeeMap.set(e.id as string, {
+        ime: String(e.ime ?? ""),
+        prezime: String(e.prezime ?? ""),
+      })
+    }
+  }
+
+  const verifikator = cl.verifikator_id ? employeeMap.get(cl.verifikator_id) ?? null : null
 
   return {
     id: cl.id,
@@ -129,21 +149,17 @@ export async function getHygieneChecklistDetail(id: string): Promise<HygieneChec
     created_by: cl.created_by,
     created_at: cl.created_at,
     templates: (templatesRes.data ?? []) as HygieneTemplate[],
-    completions: (completionsRes.data ?? []).map((r) => {
-      const empRel = (r as { employee?: unknown }).employee
-      const emp = Array.isArray(empRel) ? (empRel as Array<{ ime: string; prezime: string }>)[0] ?? null : (empRel as { ime: string; prezime: string } | null) ?? null
-      return {
-        id: r.id,
-        checklist_id: r.checklist_id,
-        template_id: r.template_id,
-        datum_uradjeno: r.datum_uradjeno,
-        employee_id: r.employee_id,
-        napomena: r.napomena,
-        created_at: r.created_at,
-        employee: emp,
-      } as HygieneCompletionWithRelations
-    }),
-    verifikator: verifikatorRel,
+    completions: (completionsRes.data ?? []).map((r) => ({
+      id: r.id as string,
+      checklist_id: r.checklist_id as string,
+      template_id: r.template_id as string,
+      datum_uradjeno: r.datum_uradjeno as string,
+      employee_id: (r.employee_id as string | null) ?? null,
+      napomena: (r.napomena as string | null) ?? null,
+      created_at: r.created_at as string | undefined,
+      employee: r.employee_id ? employeeMap.get(r.employee_id as string) ?? null : null,
+    })),
+    verifikator,
   }
 }
 
