@@ -21,6 +21,7 @@ const FINANSIJE_SUB_ITEMS = [
 const PROIZVODNJA_SUB_ITEMS = [
   { href: "/proizvodnja", label: "Radni nalozi" },
   { href: "/proizvodnja/sirovine", label: "Popis sirovina" },
+  { href: "/proizvodnja/higijena", label: "Higijena" },
 ]
 
 export async function Sidebar() {

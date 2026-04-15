@@ -1,0 +1,212 @@
+import type { HygieneChecklistDetail, HygieneCompletion, HygieneTemplate } from "@/lib/types/hygiene"
+
+const MESECI = [
+  "", "Januar", "Februar", "Mart", "April", "Maj", "Jun",
+  "Jul", "Avgust", "Septembar", "Oktobar", "Novembar", "Decembar",
+]
+
+const MAX_DATUM_COLS = 14 // koliko kolona Urađeno/datum
+
+function formatDatumShort(iso: string): string {
+  const [, m, d] = iso.split("-")
+  return `${d}.${m}.`
+}
+
+function renderRowDatumi(comps: HygieneCompletion[]): (string | null)[] {
+  const sorted = [...comps].sort((a, b) => a.datum_uradjeno.localeCompare(b.datum_uradjeno))
+  const out: (string | null)[] = new Array(MAX_DATUM_COLS).fill(null)
+  for (let i = 0; i < Math.min(sorted.length, MAX_DATUM_COLS); i++) {
+    out[i] = formatDatumShort(sorted[i].datum_uradjeno)
+  }
+  return out
+}
+
+function renderRowNapomena(comps: HygieneCompletion[]): string {
+  const notes = comps
+    .map((c) => c.napomena?.trim())
+    .filter((n): n is string => !!n && n.length > 0)
+  if (comps.length > MAX_DATUM_COLS) {
+    return `+${comps.length - MAX_DATUM_COLS} više... ${notes.join("; ")}`.trim()
+  }
+  return notes.join("; ")
+}
+
+export function PrintView({ detail }: { detail: HygieneChecklistDetail }) {
+  // Grupiši templates po grupi, sortirano po redosledu
+  const radniProstor = detail.templates
+    .filter((t) => t.grupa === "radni_prostor")
+    .sort((a, b) => a.redosled - b.redosled)
+  const krug = detail.templates
+    .filter((t) => t.grupa === "krug")
+    .sort((a, b) => a.redosled - b.redosled)
+
+  // Map completions by template_id
+  const compsByTemplate = new Map<string, HygieneCompletion[]>()
+  for (const c of detail.completions) {
+    const arr = compsByTemplate.get(c.template_id) ?? []
+    arr.push(c)
+    compsByTemplate.set(c.template_id, arr)
+  }
+
+  const datumColHeaders = new Array(MAX_DATUM_COLS).fill("")
+
+  function TableRow({ t }: { t: HygieneTemplate }) {
+    const comps = compsByTemplate.get(t.id) ?? []
+    const datumi = renderRowDatumi(comps)
+    const napomena = renderRowNapomena(comps)
+    return (
+      <tr>
+        <td className="border border-black px-1 py-0.5 align-top">{t.naziv}</td>
+        <td className="border border-black px-1 py-0.5 text-center align-top">{t.period}</td>
+        {datumi.map((d, i) => (
+          <td key={i} className="border border-black px-0.5 py-0.5 text-center text-[7pt] align-top">
+            {d ?? ""}
+          </td>
+        ))}
+        <td className="border border-black px-1 py-0.5 text-[7pt] align-top">{napomena}</td>
+      </tr>
+    )
+  }
+
+  return (
+    <div
+      id="higijena-print"
+      className="mx-auto w-full max-w-[297mm] bg-white p-6 print:p-0 print:max-w-none"
+      style={{ fontFamily: "Arial, sans-serif" }}
+    >
+      {/* Header */}
+      <div className="mb-4 border border-black">
+        <div className="grid grid-cols-[90px_1fr_180px] text-sm">
+          <div className="flex items-center justify-center border-r border-black p-3 text-2xl font-bold">
+            SSOP
+          </div>
+          <div className="flex items-center justify-center border-r border-black p-2 text-center font-bold">
+            ČEK LISTA ODRŽAVANJA HIGIJENE RADNOG PROSTORA, KRUGA I SANITARNOG ČVORA
+          </div>
+          <div className="text-xs">
+            <div className="grid grid-cols-[60px_1fr] border-b border-black">
+              <span className="border-r border-black px-2 py-1 font-semibold">Šifra</span>
+              <span className="px-2 py-1">Z-19</span>
+            </div>
+            <div className="grid grid-cols-[60px_1fr] border-b border-black">
+              <span className="border-r border-black px-2 py-1 font-semibold">Verzija</span>
+              <span className="px-2 py-1">2.0</span>
+            </div>
+            <div className="grid grid-cols-[60px_1fr]">
+              <span className="border-r border-black px-2 py-1 font-semibold">Strana</span>
+              <span className="px-2 py-1">1 od 1</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <p className="mb-2 text-xs">
+        <span className="font-semibold">Period:</span> {MESECI[detail.mesec]} {detail.godina}
+      </p>
+
+      {/* Tabela 1: Radni prostor */}
+      <table className="w-full border-collapse text-[8pt]" style={{ tableLayout: "fixed" }}>
+        <thead>
+          <tr className="bg-gray-100">
+            <th className="border border-black px-1 py-1 text-left" style={{ width: "22%" }}>Mesto održavanja</th>
+            <th className="border border-black px-1 py-1 text-center" style={{ width: "5%" }}>Period</th>
+            <th className="border border-black px-1 py-1 text-center" colSpan={MAX_DATUM_COLS}>
+              Urađeno/datum
+            </th>
+            <th className="border border-black px-1 py-1 text-left" style={{ width: "18%" }}>Napomena</th>
+          </tr>
+          <tr>
+            <th className="border border-black px-1 py-0.5" />
+            <th className="border border-black px-1 py-0.5" />
+            {datumColHeaders.map((_, i) => (
+              <th key={i} className="border border-black px-0.5 py-0.5" style={{ width: `${55 / MAX_DATUM_COLS}%` }} />
+            ))}
+            <th className="border border-black px-1 py-0.5" />
+          </tr>
+        </thead>
+        <tbody>
+          {radniProstor.map((t) => <TableRow key={t.id} t={t} />)}
+          <tr>
+            <td className="border border-black px-1 py-0.5">Ostalo</td>
+            <td className="border border-black px-1 py-0.5" />
+            {new Array(MAX_DATUM_COLS).fill(null).map((_, i) => (
+              <td key={i} className="border border-black px-0.5 py-0.5" />
+            ))}
+            <td className="border border-black px-1 py-0.5" />
+          </tr>
+          <tr className="bg-gray-100">
+            <td className="border border-black px-1 py-0.5 font-semibold">Potpis izvršioca</td>
+            <td className="border border-black px-1 py-0.5" />
+            {new Array(MAX_DATUM_COLS).fill(null).map((_, i) => (
+              <td key={i} className="border border-black px-0.5 py-0.5" />
+            ))}
+            <td className="border border-black px-1 py-0.5" />
+          </tr>
+        </tbody>
+      </table>
+
+      {/* Tabela 2: Krug */}
+      <table className="mt-4 w-full border-collapse text-[8pt]" style={{ tableLayout: "fixed" }}>
+        <thead>
+          <tr className="bg-gray-100">
+            <th className="border border-black px-1 py-1 text-left" style={{ width: "22%" }}>MESTO ODRŽAVANJA</th>
+            <th className="border border-black px-1 py-1 text-center" style={{ width: "5%" }}>Period</th>
+            <th className="border border-black px-1 py-1 text-center" colSpan={MAX_DATUM_COLS}>
+              Urađeno
+            </th>
+            <th className="border border-black px-1 py-1 text-left" style={{ width: "18%" }}>NAPOMENA</th>
+          </tr>
+        </thead>
+        <tbody>
+          {krug.map((t) => <TableRow key={t.id} t={t} />)}
+          <tr>
+            <td className="border border-black px-1 py-0.5">Ostalo</td>
+            <td className="border border-black px-1 py-0.5" />
+            {new Array(MAX_DATUM_COLS).fill(null).map((_, i) => (
+              <td key={i} className="border border-black px-0.5 py-0.5" />
+            ))}
+            <td className="border border-black px-1 py-0.5" />
+          </tr>
+          <tr className="bg-gray-100">
+            <td className="border border-black px-1 py-0.5 font-semibold">Potpis izvršioca</td>
+            <td className="border border-black px-1 py-0.5" />
+            {new Array(MAX_DATUM_COLS).fill(null).map((_, i) => (
+              <td key={i} className="border border-black px-0.5 py-0.5" />
+            ))}
+            <td className="border border-black px-1 py-0.5" />
+          </tr>
+        </tbody>
+      </table>
+
+      {/* Legend */}
+      <p className="mt-3 text-[8pt] font-semibold">
+        SP – Svakodnevni poslovi : NP – Nedeljni poslovi: MP – Mesečni poslovi:
+      </p>
+
+      {/* Verifikacija */}
+      <p className="mt-4 text-[9pt] font-semibold">Verifikacija aktivnosti</p>
+      <table className="mt-1 w-full border-collapse text-[8pt]">
+        <thead>
+          <tr className="bg-gray-100">
+            <th className="border border-black px-2 py-1 text-left" style={{ width: "25%" }}>Datum:</th>
+            <th className="border border-black px-2 py-1 text-left" style={{ width: "30%" }}>Ime i prezime:</th>
+            <th className="border border-black px-2 py-1 text-left" style={{ width: "25%" }}>Funkcija :</th>
+            <th className="border border-black px-2 py-1 text-left" style={{ width: "20%" }}>Potpis:</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td className="border border-black px-2 py-2">
+              {detail.verifikator_datum ? formatDatumShort(detail.verifikator_datum) : ""}
+            </td>
+            <td className="border border-black px-2 py-2">
+              {detail.verifikator ? `${detail.verifikator.ime} ${detail.verifikator.prezime}` : ""}
+            </td>
+            <td className="border border-black px-2 py-2">{detail.verifikator_funkcija ?? ""}</td>
+            <td className="border border-black px-2 py-2" />
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  )
+}
