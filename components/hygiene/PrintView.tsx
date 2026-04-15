@@ -19,20 +19,6 @@ function getInitials(emp: { ime: string; prezime: string } | null | undefined): 
   return `${i}${p}`
 }
 
-function sortedComps(comps: HygieneCompletionWithRelations[]): HygieneCompletionWithRelations[] {
-  return [...comps].sort((a, b) => a.datum_uradjeno.localeCompare(b.datum_uradjeno))
-}
-
-function renderRowNapomena(comps: HygieneCompletionWithRelations[]): string {
-  const notes = comps
-    .map((c) => c.napomena?.trim())
-    .filter((n): n is string => !!n && n.length > 0)
-  if (comps.length > MAX_DATUM_COLS) {
-    return `+${comps.length - MAX_DATUM_COLS} više... ${notes.join("; ")}`.trim()
-  }
-  return notes.join("; ")
-}
-
 export function PrintView({ detail }: { detail: HygieneChecklistDetail }) {
   const radniProstor = detail.templates
     .filter((t) => t.grupa === "radni_prostor")
@@ -49,56 +35,118 @@ export function PrintView({ detail }: { detail: HygieneChecklistDetail }) {
     compsByTemplate.set(c.template_id, arr)
   }
 
-  // Za "Potpis izvršioca" red — agregiraj po slot index-u za tabelu
-  function buildPotpisRow(templates: HygieneTemplate[]): string[] {
-    const slots: string[] = new Array(MAX_DATUM_COLS).fill("")
-    for (let slot = 0; slot < MAX_DATUM_COLS; slot++) {
-      const initialsSet = new Set<string>()
+  // Pomocne funkcije za jednu tabelu (radni_prostor ili krug)
+  function buildTableData(templates: HygieneTemplate[]) {
+    // Sve unique datume u tabeli, sortirano rastuće
+    const dateSet = new Set<string>()
+    for (const t of templates) {
+      const comps = compsByTemplate.get(t.id) ?? []
+      for (const c of comps) dateSet.add(c.datum_uradjeno)
+    }
+    const allDates = Array.from(dateSet).sort()
+    const visibleDates = allDates.slice(0, MAX_DATUM_COLS)
+    const overflow = allDates.length > MAX_DATUM_COLS ? allDates.slice(MAX_DATUM_COLS) : []
+
+    // Map (template_id, date) -> completion (za prikaz kvačice + napomenu po stavci)
+    const cellMap = new Map<string, HygieneCompletionWithRelations>()
+    for (const t of templates) {
+      for (const c of compsByTemplate.get(t.id) ?? []) {
+        cellMap.set(`${t.id}|${c.datum_uradjeno}`, c)
+      }
+    }
+
+    // Map date -> initials za Potpis izvršioca red
+    const initialsByDate = new Map<string, string>()
+    for (const date of visibleDates) {
+      const set = new Set<string>()
       for (const t of templates) {
-        const comps = sortedComps(compsByTemplate.get(t.id) ?? [])
-        const c = comps[slot]
+        const c = cellMap.get(`${t.id}|${date}`)
         if (c) {
           const init = getInitials(c.employee)
-          if (init) initialsSet.add(init)
+          if (init) set.add(init)
         }
       }
-      slots[slot] = Array.from(initialsSet).join(",")
+      initialsByDate.set(date, Array.from(set).join(","))
     }
-    return slots
+
+    // Po stavci sažet napomena tekst (sve napomene + overflow datumi za njega)
+    function napomenaForTemplate(t: HygieneTemplate): string {
+      const comps = compsByTemplate.get(t.id) ?? []
+      const notes = comps
+        .map((c) => c.napomena?.trim())
+        .filter((n): n is string => !!n && n.length > 0)
+      const sortedComps = [...comps].sort((a, b) => a.datum_uradjeno.localeCompare(b.datum_uradjeno))
+      const myOverflow = sortedComps
+        .map((c) => c.datum_uradjeno)
+        .filter((d) => !visibleDates.includes(d))
+        .map(formatDatumShort)
+      const parts: string[] = []
+      if (myOverflow.length > 0) parts.push(`+${myOverflow.join(", ")}`)
+      if (notes.length > 0) parts.push(notes.join("; "))
+      return parts.join(" · ")
+    }
+
+    return { visibleDates, overflow, cellMap, initialsByDate, napomenaForTemplate }
   }
 
-  const datumColHeaders = new Array(MAX_DATUM_COLS).fill("")
+  const radniData = buildTableData(radniProstor)
+  const krugData = buildTableData(krug)
 
-  function TableRow({ t }: { t: HygieneTemplate }) {
-    const comps = sortedComps(compsByTemplate.get(t.id) ?? [])
-    const napomena = renderRowNapomena(comps)
+  function HeaderCols({ dates }: { dates: string[] }) {
+    return (
+      <>
+        {dates.map((d) => (
+          <th key={d} className="border border-black px-0.5 py-0.5 text-center text-[7pt]" style={{ width: `${55 / MAX_DATUM_COLS}%` }}>
+            {formatDatumShort(d)}
+          </th>
+        ))}
+        {/* Padding kolone do MAX_DATUM_COLS */}
+        {new Array(Math.max(0, MAX_DATUM_COLS - dates.length)).fill(null).map((_, i) => (
+          <th key={`pad-${i}`} className="border border-black px-0.5 py-0.5" style={{ width: `${55 / MAX_DATUM_COLS}%` }} />
+        ))}
+      </>
+    )
+  }
+
+  function TableRow({
+    t,
+    data,
+  }: {
+    t: HygieneTemplate
+    data: ReturnType<typeof buildTableData>
+  }) {
     return (
       <tr>
         <td className="border border-black px-1 py-0.5 align-top">{t.naziv}</td>
         <td className="border border-black px-1 py-0.5 text-center align-top">{t.period}</td>
-        {new Array(MAX_DATUM_COLS).fill(null).map((_, i) => {
-          const c = comps[i]
+        {data.visibleDates.map((date) => {
+          const c = data.cellMap.get(`${t.id}|${date}`)
           return (
-            <td key={i} className="border border-black px-0.5 py-0.5 text-center text-[7pt] align-top leading-tight">
-              {c ? formatDatumShort(c.datum_uradjeno) : ""}
+            <td key={date} className="border border-black px-0.5 py-0.5 text-center align-top">
+              {c ? <span className="text-[10pt] leading-none">✓</span> : ""}
             </td>
           )
         })}
-        <td className="border border-black px-1 py-0.5 text-[7pt] align-top">{napomena}</td>
+        {new Array(Math.max(0, MAX_DATUM_COLS - data.visibleDates.length)).fill(null).map((_, i) => (
+          <td key={`pad-${i}`} className="border border-black px-0.5 py-0.5" />
+        ))}
+        <td className="border border-black px-1 py-0.5 text-[7pt] align-top">{data.napomenaForTemplate(t)}</td>
       </tr>
     )
   }
 
-  function PotpisRow({ templates }: { templates: HygieneTemplate[] }) {
-    const slots = buildPotpisRow(templates)
+  function PotpisRow({ data }: { data: ReturnType<typeof buildTableData> }) {
     return (
       <tr className="bg-gray-100">
         <td className="border border-black px-1 py-0.5 font-semibold">Potpis izvršioca</td>
         <td className="border border-black px-1 py-0.5" />
-        {slots.map((s, i) => (
-          <td key={i} className="border border-black px-0.5 py-0.5 text-center text-[7pt] align-top">
-            {s}
+        {data.visibleDates.map((date) => (
+          <td key={date} className="border border-black px-0.5 py-0.5 text-center text-[7pt] align-top">
+            {data.initialsByDate.get(date) ?? ""}
           </td>
+        ))}
+        {new Array(Math.max(0, MAX_DATUM_COLS - data.visibleDates.length)).fill(null).map((_, i) => (
+          <td key={`pad-${i}`} className="border border-black px-0.5 py-0.5" />
         ))}
         <td className="border border-black px-1 py-0.5" />
       </tr>
@@ -155,14 +203,12 @@ export function PrintView({ detail }: { detail: HygieneChecklistDetail }) {
           <tr>
             <th className="border border-black px-1 py-0.5" />
             <th className="border border-black px-1 py-0.5" />
-            {datumColHeaders.map((_, i) => (
-              <th key={i} className="border border-black px-0.5 py-0.5" style={{ width: `${55 / MAX_DATUM_COLS}%` }} />
-            ))}
+            <HeaderCols dates={radniData.visibleDates} />
             <th className="border border-black px-1 py-0.5" />
           </tr>
         </thead>
         <tbody>
-          {radniProstor.map((t) => <TableRow key={t.id} t={t} />)}
+          {radniProstor.map((t) => <TableRow key={t.id} t={t} data={radniData} />)}
           <tr>
             <td className="border border-black px-1 py-0.5">Ostalo</td>
             <td className="border border-black px-1 py-0.5" />
@@ -171,7 +217,7 @@ export function PrintView({ detail }: { detail: HygieneChecklistDetail }) {
             ))}
             <td className="border border-black px-1 py-0.5" />
           </tr>
-          <PotpisRow templates={radniProstor} />
+          <PotpisRow data={radniData} />
         </tbody>
       </table>
 
@@ -186,9 +232,15 @@ export function PrintView({ detail }: { detail: HygieneChecklistDetail }) {
             </th>
             <th className="border border-black px-1 py-1 text-left" style={{ width: "18%" }}>NAPOMENA</th>
           </tr>
+          <tr>
+            <th className="border border-black px-1 py-0.5" />
+            <th className="border border-black px-1 py-0.5" />
+            <HeaderCols dates={krugData.visibleDates} />
+            <th className="border border-black px-1 py-0.5" />
+          </tr>
         </thead>
         <tbody>
-          {krug.map((t) => <TableRow key={t.id} t={t} />)}
+          {krug.map((t) => <TableRow key={t.id} t={t} data={krugData} />)}
           <tr>
             <td className="border border-black px-1 py-0.5">Ostalo</td>
             <td className="border border-black px-1 py-0.5" />
@@ -197,7 +249,7 @@ export function PrintView({ detail }: { detail: HygieneChecklistDetail }) {
             ))}
             <td className="border border-black px-1 py-0.5" />
           </tr>
-          <PotpisRow templates={krug} />
+          <PotpisRow data={krugData} />
         </tbody>
       </table>
 
