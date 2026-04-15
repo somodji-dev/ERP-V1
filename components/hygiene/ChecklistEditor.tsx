@@ -102,6 +102,9 @@ export function ChecklistEditor({
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState(false)
 
+  // Aktivni radnik za današnje brze akcije
+  const [activeEmployee, setActiveEmployee] = useState("")
+
   // Grupiši completions po template_id
   const completionsByTemplate = new Map<string, HygieneCompletionWithRelations[]>()
   for (const c of detail.completions) {
@@ -119,14 +122,21 @@ export function ChecklistEditor({
   function openAdd(templateId: string) {
     setAddTemplateId(templateId)
     setAddDatum(todayIso())
-    setAddEmployee("")
+    setAddEmployee(activeEmployee)
     setAddNapomena("")
     setAddOpen(true)
   }
 
   async function handleQuickAdd(templateId: string) {
-    // Quick add: today, no employee, no napomena
-    const result = await addCompletionAction(detail.id, templateId, todayIso(), null, null)
+    if (!activeEmployee) {
+      toast({
+        title: "Izaberite radnika",
+        description: "Prvo izaberite radnika iznad liste.",
+        variant: "destructive",
+      })
+      return
+    }
+    const result = await addCompletionAction(detail.id, templateId, todayIso(), activeEmployee, null)
     if (result.error) {
       toast({ title: "Greška", description: result.error, variant: "destructive" })
       return
@@ -257,6 +267,32 @@ export function ChecklistEditor({
         </Button>
       </div>
 
+      {/* Aktivni radnik — koristi se za tap-dodavanje današnjeg datuma */}
+      <div className="sticky top-0 z-30 rounded-xl border border-[#E5E7EB] bg-white p-3 shadow-sm print:hidden">
+        <Label htmlFor="active-employee" className="text-xs font-semibold text-[#6B7280] uppercase tracking-wide">
+          Radnik koji radi proveru
+        </Label>
+        <Select
+          value={activeEmployee || "none"}
+          onValueChange={(v) => setActiveEmployee(v === "none" ? "" : v)}
+        >
+          <SelectTrigger id="active-employee" className="mt-1.5 border-[#E5E7EB]">
+            <SelectValue placeholder="Izaberi radnika..." />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="none">— Nije izabran —</SelectItem>
+            {employees.map((e) => (
+              <SelectItem key={e.id} value={e.id}>{e.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {!activeEmployee && (
+          <p className="mt-1.5 text-[11px] text-[#DC2626]">
+            Izaberite radnika pre tapkanja na stavke.
+          </p>
+        )}
+      </div>
+
       {/* Sekcije po period-u */}
       {(["SP", "NP", "MP"] as const).map((period) => (
         <section key={period} className="space-y-2">
@@ -318,7 +354,7 @@ export function ChecklistEditor({
                   {!hasAny && (
                     <p className="mt-2 text-xs text-[#9CA3AF] italic flex items-center gap-1">
                       <CircleDot className="h-3 w-3" />
-                      Tap na naziv = danas; plus za drugi datum
+                      Tap na naziv = danas (izabrani radnik); plus za drugi datum
                     </p>
                   )}
                 </div>
