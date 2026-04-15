@@ -3,6 +3,7 @@ import { redirect } from "next/navigation"
 import { getCurrentUser } from "@/lib/auth/user"
 import { getUserPermissions, canEdit } from "@/lib/auth/permissions"
 import { getHygieneChecklists } from "@/app/actions/hygiene"
+import { GodinaFilter } from "@/components/hygiene/GodinaFilter"
 import { Button } from "@/components/ui/button"
 import { Plus, Settings, CheckCircle2, Printer, ClipboardCheck } from "lucide-react"
 
@@ -56,18 +57,7 @@ export default async function HigijenaListaPage({
 
       <div className="mb-4 flex items-center gap-3">
         <span className="text-sm text-[#6B7280]">Godina:</span>
-        <form action="/proizvodnja/higijena" method="GET">
-          <select
-            name="godina"
-            defaultValue={String(godina)}
-            className="rounded-md border border-[#E5E7EB] bg-white px-3 py-1.5 text-sm"
-            onChange={(e) => (e.currentTarget.form as HTMLFormElement).submit()}
-          >
-            {years.map((y) => (
-              <option key={y} value={y}>{y}</option>
-            ))}
-          </select>
-        </form>
+        <GodinaFilter godina={godina} years={years} />
       </div>
 
       {checklists.length === 0 ? (
