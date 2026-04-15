@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -184,6 +185,9 @@ export function TemplateSettingsClient({ templates }: { templates: HygieneTempla
         <DialogContent className="border-[#E5E7EB] bg-white rounded-xl max-w-md w-[calc(100vw-2rem)]">
           <DialogHeader>
             <DialogTitle>{editing ? "Izmena stavke" : "Nova stavka"}</DialogTitle>
+            <DialogDescription className="sr-only">
+              Definiši naziv, grupu, period i redosled stavke ček liste.
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">

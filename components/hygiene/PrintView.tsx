@@ -1,27 +1,29 @@
-import type { HygieneChecklistDetail, HygieneCompletion, HygieneTemplate } from "@/lib/types/hygiene"
+import type { HygieneChecklistDetail, HygieneTemplate, HygieneCompletionWithRelations } from "@/lib/types/hygiene"
 
 const MESECI = [
   "", "Januar", "Februar", "Mart", "April", "Maj", "Jun",
   "Jul", "Avgust", "Septembar", "Oktobar", "Novembar", "Decembar",
 ]
 
-const MAX_DATUM_COLS = 14 // koliko kolona Urađeno/datum
+const MAX_DATUM_COLS = 14
 
 function formatDatumShort(iso: string): string {
   const [, m, d] = iso.split("-")
   return `${d}.${m}.`
 }
 
-function renderRowDatumi(comps: HygieneCompletion[]): (string | null)[] {
-  const sorted = [...comps].sort((a, b) => a.datum_uradjeno.localeCompare(b.datum_uradjeno))
-  const out: (string | null)[] = new Array(MAX_DATUM_COLS).fill(null)
-  for (let i = 0; i < Math.min(sorted.length, MAX_DATUM_COLS); i++) {
-    out[i] = formatDatumShort(sorted[i].datum_uradjeno)
-  }
-  return out
+function getInitials(emp: { ime: string; prezime: string } | null | undefined): string {
+  if (!emp) return ""
+  const i = (emp.ime || "").trim().charAt(0).toUpperCase()
+  const p = (emp.prezime || "").trim().charAt(0).toUpperCase()
+  return `${i}${p}`
 }
 
-function renderRowNapomena(comps: HygieneCompletion[]): string {
+function sortedComps(comps: HygieneCompletionWithRelations[]): HygieneCompletionWithRelations[] {
+  return [...comps].sort((a, b) => a.datum_uradjeno.localeCompare(b.datum_uradjeno))
+}
+
+function renderRowNapomena(comps: HygieneCompletionWithRelations[]): string {
   const notes = comps
     .map((c) => c.napomena?.trim())
     .filter((n): n is string => !!n && n.length > 0)
@@ -32,7 +34,6 @@ function renderRowNapomena(comps: HygieneCompletion[]): string {
 }
 
 export function PrintView({ detail }: { detail: HygieneChecklistDetail }) {
-  // Grupiši templates po grupi, sortirano po redosledu
   const radniProstor = detail.templates
     .filter((t) => t.grupa === "radni_prostor")
     .sort((a, b) => a.redosled - b.redosled)
@@ -41,29 +42,65 @@ export function PrintView({ detail }: { detail: HygieneChecklistDetail }) {
     .sort((a, b) => a.redosled - b.redosled)
 
   // Map completions by template_id
-  const compsByTemplate = new Map<string, HygieneCompletion[]>()
+  const compsByTemplate = new Map<string, HygieneCompletionWithRelations[]>()
   for (const c of detail.completions) {
     const arr = compsByTemplate.get(c.template_id) ?? []
     arr.push(c)
     compsByTemplate.set(c.template_id, arr)
   }
 
+  // Za "Potpis izvršioca" red — agregiraj po slot index-u za tabelu
+  function buildPotpisRow(templates: HygieneTemplate[]): string[] {
+    const slots: string[] = new Array(MAX_DATUM_COLS).fill("")
+    for (let slot = 0; slot < MAX_DATUM_COLS; slot++) {
+      const initialsSet = new Set<string>()
+      for (const t of templates) {
+        const comps = sortedComps(compsByTemplate.get(t.id) ?? [])
+        const c = comps[slot]
+        if (c) {
+          const init = getInitials(c.employee)
+          if (init) initialsSet.add(init)
+        }
+      }
+      slots[slot] = Array.from(initialsSet).join(",")
+    }
+    return slots
+  }
+
   const datumColHeaders = new Array(MAX_DATUM_COLS).fill("")
 
   function TableRow({ t }: { t: HygieneTemplate }) {
-    const comps = compsByTemplate.get(t.id) ?? []
-    const datumi = renderRowDatumi(comps)
+    const comps = sortedComps(compsByTemplate.get(t.id) ?? [])
     const napomena = renderRowNapomena(comps)
     return (
       <tr>
         <td className="border border-black px-1 py-0.5 align-top">{t.naziv}</td>
         <td className="border border-black px-1 py-0.5 text-center align-top">{t.period}</td>
-        {datumi.map((d, i) => (
+        {new Array(MAX_DATUM_COLS).fill(null).map((_, i) => {
+          const c = comps[i]
+          return (
+            <td key={i} className="border border-black px-0.5 py-0.5 text-center text-[7pt] align-top leading-tight">
+              {c ? formatDatumShort(c.datum_uradjeno) : ""}
+            </td>
+          )
+        })}
+        <td className="border border-black px-1 py-0.5 text-[7pt] align-top">{napomena}</td>
+      </tr>
+    )
+  }
+
+  function PotpisRow({ templates }: { templates: HygieneTemplate[] }) {
+    const slots = buildPotpisRow(templates)
+    return (
+      <tr className="bg-gray-100">
+        <td className="border border-black px-1 py-0.5 font-semibold">Potpis izvršioca</td>
+        <td className="border border-black px-1 py-0.5" />
+        {slots.map((s, i) => (
           <td key={i} className="border border-black px-0.5 py-0.5 text-center text-[7pt] align-top">
-            {d ?? ""}
+            {s}
           </td>
         ))}
-        <td className="border border-black px-1 py-0.5 text-[7pt] align-top">{napomena}</td>
+        <td className="border border-black px-1 py-0.5" />
       </tr>
     )
   }
@@ -134,14 +171,7 @@ export function PrintView({ detail }: { detail: HygieneChecklistDetail }) {
             ))}
             <td className="border border-black px-1 py-0.5" />
           </tr>
-          <tr className="bg-gray-100">
-            <td className="border border-black px-1 py-0.5 font-semibold">Potpis izvršioca</td>
-            <td className="border border-black px-1 py-0.5" />
-            {new Array(MAX_DATUM_COLS).fill(null).map((_, i) => (
-              <td key={i} className="border border-black px-0.5 py-0.5" />
-            ))}
-            <td className="border border-black px-1 py-0.5" />
-          </tr>
+          <PotpisRow templates={radniProstor} />
         </tbody>
       </table>
 
@@ -167,14 +197,7 @@ export function PrintView({ detail }: { detail: HygieneChecklistDetail }) {
             ))}
             <td className="border border-black px-1 py-0.5" />
           </tr>
-          <tr className="bg-gray-100">
-            <td className="border border-black px-1 py-0.5 font-semibold">Potpis izvršioca</td>
-            <td className="border border-black px-1 py-0.5" />
-            {new Array(MAX_DATUM_COLS).fill(null).map((_, i) => (
-              <td key={i} className="border border-black px-0.5 py-0.5" />
-            ))}
-            <td className="border border-black px-1 py-0.5" />
-          </tr>
+          <PotpisRow templates={krug} />
         </tbody>
       </table>
 

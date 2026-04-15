@@ -6,6 +6,7 @@ import Link from "next/link"
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -403,6 +404,9 @@ export function ChecklistEditor({
         <DialogContent className="border-[#E5E7EB] bg-white rounded-xl max-w-md w-[calc(100vw-2rem)]">
           <DialogHeader>
             <DialogTitle>Dodaj datum</DialogTitle>
+            <DialogDescription className="sr-only">
+              Dodaj novi datum kada je posao urađen.
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleAddSubmit} className="space-y-4">
             <div className="space-y-2">
@@ -440,6 +444,9 @@ export function ChecklistEditor({
         <DialogContent className="border-[#E5E7EB] bg-white rounded-xl max-w-md w-[calc(100vw-2rem)]">
           <DialogHeader>
             <DialogTitle>Izmena unosa</DialogTitle>
+            <DialogDescription className="sr-only">
+              Izmeni datum, radnika ili napomenu, ili obriši unos.
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleEditSubmit} className="space-y-4">
             <div className="space-y-2">
@@ -481,6 +488,9 @@ export function ChecklistEditor({
         <DialogContent className="border-[#E5E7EB] bg-white rounded-xl max-w-md w-[calc(100vw-2rem)]">
           <DialogHeader>
             <DialogTitle>Verifikacija aktivnosti</DialogTitle>
+            <DialogDescription className="sr-only">
+              Unesi podatke o verifikatoru, funkciju i datum verifikacije.
+            </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleVerifikacija} className="space-y-4">
             <div className="space-y-2">
