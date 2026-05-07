@@ -15,8 +15,9 @@ const ICONS: Record<NavGroupIconName, React.ComponentType<{ className?: string }
 }
 
 interface SubItem {
-  href: string
+  href?: string
   label: string
+  children?: SubItem[]
 }
 
 interface NavGroupProps {
@@ -34,11 +35,73 @@ function isSubItemActive(href: string, pathname: string): boolean {
   return pathname.startsWith(href + "/")
 }
 
+function isAnyActive(items: SubItem[], pathname: string): boolean {
+  return items.some((it) => {
+    if (it.children) return isAnyActive(it.children, pathname)
+    if (it.href) return isSubItemActive(it.href, pathname)
+    return false
+  })
+}
+
+function NestedSubGroup({ item, pathname }: { item: SubItem; pathname: string }) {
+  const active = item.children ? isAnyActive(item.children, pathname) : false
+  const [expanded, setExpanded] = useState(active)
+
+  useEffect(() => {
+    if (active) setExpanded(true)
+  }, [active])
+
+  return (
+    <div className="space-y-0.5">
+      <button
+        type="button"
+        onClick={() => setExpanded((e) => !e)}
+        className={cn(
+          "flex w-full items-center gap-2 rounded-md px-3 py-2 text-sm font-medium transition-colors",
+          active
+            ? "text-[#2563EB] font-semibold"
+            : "text-[#6B7280] hover:bg-[#F4F5F7]"
+        )}
+      >
+        <span className="flex-1 text-left">{item.label}</span>
+        {expanded ? (
+          <ChevronDown className="h-4 w-4 shrink-0" />
+        ) : (
+          <ChevronRight className="h-4 w-4 shrink-0" />
+        )}
+      </button>
+      {expanded && item.children && (
+        <ul className="space-y-0.5 pl-4">
+          {item.children.map((child) => {
+            if (!child.href) return null
+            const isActive = isSubItemActive(child.href, pathname)
+            return (
+              <li key={child.href}>
+                <Link
+                  href={child.href}
+                  className={cn(
+                    "block rounded-md px-3 py-2 text-sm font-medium transition-colors",
+                    isActive
+                      ? "bg-[#EFF6FF] text-[#2563EB] font-semibold"
+                      : "text-[#6B7280] hover:bg-[#F4F5F7]"
+                  )}
+                >
+                  {child.label}
+                </Link>
+              </li>
+            )
+          })}
+        </ul>
+      )}
+    </div>
+  )
+}
+
 export function NavGroup({ label, iconName, subItems }: NavGroupProps) {
   const pathname = usePathname()
 
-  // Grupa je aktivna ako je bilo koji sub-item aktivan
-  const isGroupActive = subItems.some((sub) => isSubItemActive(sub.href, pathname))
+  // Grupa je aktivna ako je bilo koji sub-item aktivan (rekurzivno)
+  const isGroupActive = isAnyActive(subItems, pathname)
 
   const [expanded, setExpanded] = useState(isGroupActive)
 
@@ -71,6 +134,14 @@ export function NavGroup({ label, iconName, subItems }: NavGroupProps) {
       {expanded && (
         <ul className="space-y-0.5 pl-6 pr-2">
           {subItems.map((sub) => {
+            if (sub.children) {
+              return (
+                <li key={sub.label}>
+                  <NestedSubGroup item={sub} pathname={pathname} />
+                </li>
+              )
+            }
+            if (!sub.href) return null
             const isActive = isSubItemActive(sub.href, pathname)
             return (
               <li key={sub.href}>

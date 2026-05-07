@@ -16,6 +16,13 @@ const FINANSIJE_SUB_ITEMS = [
   { href: "/cash-flow", label: "Cash Flow" },
   { href: "/prihodi-rashodi", label: "Prihodi i Rashodi" },
   { href: "/dodatni-troskovi", label: "Dodatni troškovi" },
+  {
+    label: "Cene",
+    children: [
+      { href: "/cene-proizvoda", label: "Proračun cene proizvoda" },
+      { href: "/cene-sirovina", label: "Cene sirovina" },
+    ],
+  },
 ]
 
 const PROIZVODNJA_SUB_ITEMS = [
