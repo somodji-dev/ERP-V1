@@ -37,3 +37,6 @@ next-env.d.ts
 
 # debug logs
 /logs/
+
+# Claude Code
+.claude/
