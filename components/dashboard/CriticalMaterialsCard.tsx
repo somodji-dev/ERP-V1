@@ -8,6 +8,8 @@ export type CriticalMaterial = {
   min_kolicina: number
   jedinica: string
   iznad_minimuma: boolean
+  /** Gotov tekst umesto razlike (npr. paletna sirovina upisana u džakovima). */
+  prikaz?: string
 }
 
 export function CriticalMaterialsCard({
@@ -49,7 +51,7 @@ export function CriticalMaterialsCard({
                 >
                   <span className="text-[#DC2626] font-medium truncate mr-2">{m.naziv}</span>
                   <span className="text-[#DC2626] tabular-nums whitespace-nowrap">
-                    {razlika.toLocaleString("sr-RS")} {m.jedinica}
+                    {m.prikaz ?? `${razlika.toLocaleString("sr-RS")} ${m.jedinica}`}
                   </span>
                 </div>
               )

@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/auth/user"
 import { getUserPermissions, canViewModule, getFirstAllowedRoute } from "@/lib/auth/permissions"
 import { getDashboardData } from "@/lib/dashboard/data"
 import { getRawMaterials, getLatestInventoryCount, getInventoryCountItems } from "@/app/actions/inventory"
+import { jeIspodMinimuma, PALETA, DZAK } from "@/lib/types/inventory"
 import { KPICard } from "@/components/dashboard/KPICard"
 import { CriticalMaterialsCard } from "@/components/dashboard/CriticalMaterialsCard"
 import type { CriticalMaterial } from "@/components/dashboard/CriticalMaterialsCard"
@@ -52,17 +53,24 @@ export default async function DashboardPage() {
       const item = itemMap.get(m.id)
       const iznadMinimuma = item?.iznad_minimuma ?? false
       const kolicina = item ? Number(item.kolicina) : 0
-      if (!iznadMinimuma && kolicina < Number(m.min_kolicina)) {
+      if (jeIspodMinimuma(m, kolicina, iznadMinimuma)) {
+        const paleta = m.jedinica === PALETA
         ispod.push({
           naziv: m.naziv,
           kolicina,
           min_kolicina: Number(m.min_kolicina),
           jedinica: m.jedinica,
           iznad_minimuma: false,
+          // Paletne sirovine su upisane u džakovima — razlika u paletama nema smisla.
+          prikaz: paleta ? `${kolicina.toLocaleString("sr-RS")} ${DZAK}` : undefined,
         })
       }
     }
-    ispod.sort((a, b) => (a.kolicina - a.min_kolicina) - (b.kolicina - b.min_kolicina))
+    // Paletne (osnovne) sirovine prve, ostale po najvećem manjku.
+    ispod.sort((a, b) =>
+      a.prikaz && !b.prikaz ? -1 : !a.prikaz && b.prikaz ? 1
+        : (a.kolicina - a.min_kolicina) - (b.kolicina - b.min_kolicina)
+    )
     totalIspod = ispod.length
     criticalMaterials = ispod.slice(0, 3)
   }

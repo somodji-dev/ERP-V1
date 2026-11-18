@@ -50,6 +50,7 @@ export async function getInventoryCounts(): Promise<InventoryCount[]> {
     .from("inventory_counts")
     .select("*")
     .order("datum", { ascending: false })
+    .order("created_at", { ascending: false })
 
   if (error) {
     logAppError(error.message, "getInventoryCounts")
@@ -85,7 +86,10 @@ export async function getLatestInventoryCount(): Promise<InventoryCount | null> 
   const { data, error } = await supabase
     .from("inventory_counts")
     .select("*")
+    // Više popisa istog dana: datum je bez vremena, pa bez created_at baza vraća
+    // proizvoljan (često stariji) popis — izgleda kao da se unos nije sačuvao.
     .order("datum", { ascending: false })
+    .order("created_at", { ascending: false })
     .limit(1)
     .maybeSingle()
 
@@ -102,6 +106,10 @@ export async function createInventoryCountAction(
   employeeId: string | null,
   items: { raw_material_id: string; kolicina: number; iznad_minimuma: boolean }[]
 ): Promise<{ id?: string; error?: string }> {
+  if (items.some((i) => !Number.isFinite(i.kolicina) || i.kolicina < 0)) {
+    return { error: "Neispravna količina u popisu." }
+  }
+
   const supabase = await createClient()
   const {
     data: { user },
@@ -131,6 +139,8 @@ export async function createInventoryCountAction(
 
   if (itemsErr) {
     logAppError(itemsErr.message, "createInventoryCountAction:items")
+    // Ne ostavljaj prazan popis — on bi postao "poslednji" i prikazao sve nule.
+    await supabase.from("inventory_counts").delete().eq("id", inserted.id)
     return { error: itemsErr.message }
   }
 

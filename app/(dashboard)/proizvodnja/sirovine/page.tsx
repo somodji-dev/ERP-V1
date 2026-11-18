@@ -9,7 +9,7 @@ import {
   getActiveEmployees,
 } from "@/app/actions/inventory"
 import { PopisSirovinaClient } from "@/components/inventory/PopisSirovinaClient"
-import type { InventoryRow } from "@/lib/types/inventory"
+import { jeIspodMinimuma, type InventoryRow } from "@/lib/types/inventory"
 
 export default async function SirovinePage() {
   const user = await getCurrentUser()
@@ -39,7 +39,7 @@ export default async function SirovinePage() {
       ...m,
       kolicina,
       iznad_minimuma: iznadMinimuma,
-      ispod_minimuma: latestCount !== null && !iznadMinimuma && kolicina < Number(m.min_kolicina),
+      ispod_minimuma: latestCount !== null && jeIspodMinimuma(m, kolicina, iznadMinimuma),
     }
   })
 
