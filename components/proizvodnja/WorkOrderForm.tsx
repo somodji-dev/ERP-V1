@@ -1,25 +1,19 @@
 "use client"
 
-import { useEffect } from "react"
+import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { useToast } from "@/components/ui/use-toast"
-import { createWorkOrder, updateWorkOrder, getNextBrojNaloga, getNextLotBroj } from "@/app/actions/work-orders"
+import { createWorkOrder, updateWorkOrder, getNextBrojNaloga, getLotPredlog } from "@/app/actions/work-orders"
+import { parseLotBroj } from "@/lib/proizvodnja/lot-broj"
 import { WorkOrderCard } from "@/components/proizvodnja/WorkOrderCard"
 import { ProcessCard } from "@/components/proizvodnja/ProcessCard"
 import { PakovanjeGrid } from "@/components/proizvodnja/PakovanjeGrid"
-import { EmployeeMultiSelect } from "@/components/proizvodnja/EmployeeMultiSelect"
+import { CheckLista, type CheckOpcija } from "@/components/proizvodnja/CheckLista"
 import { workOrderSchema, type WorkOrderFormValues, DOBAVLJACI } from "@/lib/proizvodnja/validation"
 import { predlogSmeneIDatuma } from "@/lib/proizvodnja/predlog-smene"
 import { Loader2 } from "lucide-react"
@@ -30,7 +24,6 @@ type Props = {
   mode: "create" | "edit"
   workOrderId?: string
   employees: Employee[]
-  initialBrojNaloga?: string
   initialData?: Partial<WorkOrderFormValues>
 }
 
@@ -45,7 +38,6 @@ export function WorkOrderForm({
   mode,
   workOrderId,
   employees,
-  initialBrojNaloga,
   initialData,
 }: Props) {
   const router = useRouter()
@@ -85,38 +77,61 @@ export function WorkOrderForm({
 
   // Predlog smene i datuma po lokalnom vremenu otvaranja forme (samo za novi nalog).
   // Radi se u useEffect da bi se koristio sat na uređaju, a ne na serveru.
+  const [predlogSmeneTekst, setPredlogSmeneTekst] = useState<string | null>(null)
   useEffect(() => {
     if (mode !== "create") return
-    const predlog = predlogSmeneIDatuma()
-    if (!initialData?.smena) form.setValue("smena", predlog.smena)
-    if (!initialData?.datum) form.setValue("datum", predlog.datum)
+    const sada = new Date()
+    const predlog = predlogSmeneIDatuma(sada)
+    if (!initialData?.smena) form.setValue("smena", predlog.smena, { shouldValidate: true })
+    if (!initialData?.datum) form.setValue("datum", predlog.datum, { shouldValidate: true })
+    const sat = `${String(sada.getHours()).padStart(2, "0")}:${String(sada.getMinutes()).padStart(2, "0")}`
+    setPredlogSmeneTekst(`Predloženo po vremenu unosa (${sat}) — proverite pre čuvanja.`)
   }, [mode, initialData?.smena, initialData?.datum, form])
 
-  // Predlog LOT broja (npr. 21N11) za mesec izabranog datuma. Osvežava se kad se datum
-  // promeni, osim ako je korisnik LOT već ručno izmenio.
+  // Svi aktivni radnici za smenu; za operaciju samo radnici izabrani u smeni
+  // (ako niko nije izabran — svi), uz već izabranog radnika da ne nestane iz liste.
+  const sviRadnici: CheckOpcija[] = employees.map((e) => ({ value: e.id, label: `${e.ime} ${e.prezime}` }))
+  const radniciUSmeni = form.watch("radnici")
+  function radniciZaOperaciju(izabraniId: string): CheckOpcija[] {
+    if (radniciUSmeni.length === 0) return sviRadnici
+    return sviRadnici.filter((o) => radniciUSmeni.includes(o.value) || o.value === izabraniId)
+  }
+
+  // Predlog LOT broja za izabrani datum i smenu: LOT prethodne smene u mesecu + 1
+  // (tako naknadno uneti nalog dobije LOT koji fali), inače najveći + 1.
+  // Ne prepisuje LOT koji je korisnik ručno izmenio. Zauzeti brojevi služe za upozorenje.
   const datumYMD = toYMD(form.watch("datum"))
+  const smena = form.watch("smena")
+  const [zauzetiLot, setZauzetiLot] = useState<{ mesec: number; brojevi: number[] } | null>(null)
   useEffect(() => {
-    if (mode !== "create" || initialData?.pakovanje?.lot_broj) return
     let otkazano = false
-    getNextLotBroj(datumYMD).then((lot) => {
-      if (otkazano || !lot) return
+    getLotPredlog(datumYMD, smena, workOrderId).then((rez) => {
+      if (otkazano || !rez) return
+      setZauzetiLot({ mesec: parseInt(datumYMD.slice(5, 7), 10), brojevi: rez.zauzeti })
+      if (mode !== "create" || initialData?.pakovanje?.lot_broj) return
       if (form.getFieldState("pakovanje.lot_broj").isDirty) return
-      form.setValue("pakovanje.lot_broj", lot)
+      form.setValue("pakovanje.lot_broj", rez.predlog)
     })
     return () => {
       otkazano = true
     }
-  }, [mode, datumYMD, initialData?.pakovanje?.lot_broj, form])
+  }, [mode, datumYMD, smena, workOrderId, initialData?.pakovanje?.lot_broj, form])
 
+  const unetiLot = parseLotBroj(form.watch("pakovanje.lot_broj"))
+  const lotDuplikat =
+    unetiLot && zauzetiLot && unetiLot.mesec === zauzetiLot.mesec && zauzetiLot.brojevi.includes(unetiLot.redni)
+
+  // Privremeni broj naloga za mesec izabranog datuma; posle čuvanja se mesec prenumeriše.
   useEffect(() => {
-    if (mode === "create" && !initialData?.broj_naloga) {
-      if (initialBrojNaloga) {
-        form.setValue("broj_naloga", initialBrojNaloga)
-        return
-      }
-      getNextBrojNaloga().then((next) => form.setValue("broj_naloga", next))
+    if (mode !== "create" || initialData?.broj_naloga) return
+    let otkazano = false
+    getNextBrojNaloga(datumYMD).then((next) => {
+      if (!otkazano) form.setValue("broj_naloga", next)
+    })
+    return () => {
+      otkazano = true
     }
-  }, [mode, initialBrojNaloga, initialData?.broj_naloga, form])
+  }, [mode, datumYMD, initialData?.broj_naloga, form])
 
   const onSubmit = async (values: WorkOrderFormValues) => {
     try {
@@ -154,9 +169,11 @@ export function WorkOrderForm({
             </Label>
             <Input
               id="broj_naloga"
-              className="border-[#E5E7EB]"
+              className="border-[#E5E7EB] bg-[#F9FAFB]"
+              readOnly
               {...form.register("broj_naloga")}
             />
+            <p className="text-xs text-[#6B7280]">Dodeljuje se automatski po datumu i smeni.</p>
             {form.formState.errors.broj_naloga && (
               <p className="text-xs text-[#DC2626]">{form.formState.errors.broj_naloga.message}</p>
             )}
@@ -171,54 +188,33 @@ export function WorkOrderForm({
             />
           </div>
         </div>
-        <div className="mt-4 space-y-2">
-          <EmployeeMultiSelect
-            employees={employees}
-            selectedIds={form.watch("radnici")}
+        <div className="mt-5">
+          <CheckLista
+            label="Smena"
+            kolone={2}
+            opcije={[
+              { value: "I", label: "I smena" },
+              { value: "II", label: "II smena" },
+            ]}
+            vrednost={form.watch("smena")}
+            onChange={(v) => form.setValue("smena", v as "I" | "II", { shouldValidate: true })}
+          />
+          {predlogSmeneTekst && <p className="mt-1 text-xs text-[#6B7280]">{predlogSmeneTekst}</p>}
+        </div>
+        <div className="mt-5">
+          <CheckLista
+            vise
+            label="Radnici u smeni"
+            opcije={sviRadnici}
+            vrednost={form.watch("radnici")}
             onChange={(ids) => form.setValue("radnici", ids, { shouldValidate: true })}
             error={form.formState.errors.radnici?.message}
           />
         </div>
-        <div className="mt-4 max-w-[120px] space-y-2">
-          <Label className="text-[#6B7280]">Smena</Label>
-          <Select
-            value={form.watch("smena")}
-            onValueChange={(v) => form.setValue("smena", v as "I" | "II", { shouldValidate: true })}
-          >
-            <SelectTrigger className="border-[#E5E7EB]">
-              <SelectValue placeholder="Smena" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="I">I</SelectItem>
-              <SelectItem value="II">II</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
       </WorkOrderCard>
 
       <ProcessCard title="Dražiranje" subtitle="Sva polja obavezna">
-        <div className="grid gap-4 sm:grid-cols-3">
-          <div className="space-y-2">
-            <Label className="text-[#6B7280]">Radnik</Label>
-            <Select
-              value={form.watch("draziranje.radnik_id")}
-              onValueChange={(v) => form.setValue("draziranje.radnik_id", v, { shouldValidate: true })}
-            >
-              <SelectTrigger className="border-[#E5E7EB]">
-                <SelectValue placeholder="Izaberi radnika" />
-              </SelectTrigger>
-              <SelectContent>
-                {employees.map((e) => (
-                  <SelectItem key={e.id} value={e.id}>
-                    {e.ime} {e.prezime}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {form.formState.errors.draziranje?.radnik_id && (
-              <p className="text-xs text-[#DC2626]">{form.formState.errors.draziranje.radnik_id.message}</p>
-            )}
-          </div>
+        <div className="max-w-[200px]">
           <div className="space-y-2">
             <Label className="text-[#6B7280]">Broj dražiranja</Label>
             <Input
@@ -237,24 +233,25 @@ export function WorkOrderForm({
               <p className="text-xs text-[#DC2626]">{form.formState.errors.draziranje.broj_draziranja.message}</p>
             )}
           </div>
-          <div className="space-y-2">
-            <Label className="text-[#6B7280]">Dobavljač</Label>
-            <Select
-              value={form.watch("draziranje.dobavljac")}
-              onValueChange={(v) => form.setValue("draziranje.dobavljac", v as "Good Food" | "Karlito" | "In sistem", { shouldValidate: true })}
-            >
-              <SelectTrigger className="border-[#E5E7EB]">
-                <SelectValue placeholder="Izaberi dobavljača" />
-              </SelectTrigger>
-              <SelectContent>
-                {DOBAVLJACI.map((d) => (
-                  <SelectItem key={d} value={d}>
-                    {d}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+        </div>
+        <div className="mt-5">
+          <CheckLista
+            label="Dobavljač"
+            opcije={DOBAVLJACI.map((d) => ({ value: d, label: d }))}
+            vrednost={form.watch("draziranje.dobavljac")}
+            onChange={(v) =>
+              form.setValue("draziranje.dobavljac", v as "Good Food" | "Karlito" | "In sistem", { shouldValidate: true })
+            }
+          />
+        </div>
+        <div className="mt-5">
+          <CheckLista
+            label="Radnik na dražiranju"
+            opcije={radniciZaOperaciju(form.watch("draziranje.radnik_id"))}
+            vrednost={form.watch("draziranje.radnik_id")}
+            onChange={(v) => form.setValue("draziranje.radnik_id", v, { shouldValidate: true })}
+            error={form.formState.errors.draziranje?.radnik_id?.message}
+          />
         </div>
       </ProcessCard>
 
@@ -284,27 +281,13 @@ export function WorkOrderForm({
         subtitle="Radnik i bar jedno pakovanje obavezno. LOT broj opciono."
       >
         <div className="space-y-4">
-          <div className="max-w-[280px] space-y-2">
-            <Label className="text-[#6B7280]">Radnik</Label>
-            <Select
-              value={form.watch("pakovanje.radnik_id")}
-              onValueChange={(v) => form.setValue("pakovanje.radnik_id", v, { shouldValidate: true })}
-            >
-              <SelectTrigger className="border-[#E5E7EB]">
-                <SelectValue placeholder="Izaberi radnika" />
-              </SelectTrigger>
-              <SelectContent>
-                {employees.map((e) => (
-                  <SelectItem key={e.id} value={e.id}>
-                    {e.ime} {e.prezime}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            {form.formState.errors.pakovanje?.radnik_id && (
-              <p className="text-xs text-[#DC2626]">{form.formState.errors.pakovanje.radnik_id.message}</p>
-            )}
-          </div>
+          <CheckLista
+            label="Radnik na pakovanju"
+            opcije={radniciZaOperaciju(form.watch("pakovanje.radnik_id"))}
+            vrednost={form.watch("pakovanje.radnik_id")}
+            onChange={(v) => form.setValue("pakovanje.radnik_id", v, { shouldValidate: true })}
+            error={form.formState.errors.pakovanje?.radnik_id?.message}
+          />
           <div>
             <Label className="text-sm font-medium text-[#111827]">Šta smo pakovali:</Label>
             <div className="mt-2">
@@ -327,22 +310,29 @@ export function WorkOrderForm({
               placeholder="npr. 21N11"
               {...form.register("pakovanje.lot_broj")}
             />
+            {lotDuplikat && (
+              <p className="text-xs text-[#D97706]">Ovaj LOT već postoji u tom mesecu.</p>
+            )}
           </div>
         </div>
       </ProcessCard>
 
-      <div className="flex flex-wrap gap-3 pt-2">
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-2">
         <Button
           type="button"
           variant="outline"
-          className="border-[#E5E7EB]"
+          className="h-12 border-[#E5E7EB] px-5"
           onClick={() => router.back()}
           disabled={isSubmitting}
         >
           Otkaži
         </Button>
-        <Button type="submit" className="bg-[#2563EB] hover:bg-[#1D4ED8]" disabled={isSubmitting}>
-          {isSubmitting && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
+        <Button
+          type="submit"
+          className="h-14 min-w-[220px] bg-[#2563EB] px-8 text-lg font-semibold hover:bg-[#1D4ED8]"
+          disabled={isSubmitting}
+        >
+          {isSubmitting && <Loader2 className="mr-2 h-5 w-5 animate-spin" />}
           {mode === "edit" ? "Sačuvaj izmene" : "Sačuvaj nalog"}
         </Button>
       </div>

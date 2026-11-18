@@ -3,7 +3,6 @@ import { createClient } from "@/lib/supabase/server"
 import { Button } from "@/components/ui/button"
 import { ArrowLeft } from "lucide-react"
 import { WorkOrderForm } from "@/components/proizvodnja/WorkOrderForm"
-import { getNextBrojNaloga } from "@/app/actions/work-orders"
 
 export default async function ProizvodnjaNoviPage() {
   const supabase = await createClient()
@@ -13,7 +12,6 @@ export default async function ProizvodnjaNoviPage() {
     .eq("aktivan", true)
     .order("ime", { ascending: true })
 
-  const nextBroj = await getNextBrojNaloga()
   const list = (employees ?? []) as { id: string; ime: string; prezime: string }[]
 
   return (
@@ -30,7 +28,6 @@ export default async function ProizvodnjaNoviPage() {
       <WorkOrderForm
         mode="create"
         employees={list}
-        initialBrojNaloga={nextBroj}
       />
     </div>
   )
