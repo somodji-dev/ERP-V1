@@ -15,12 +15,13 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { useToast } from "@/components/ui/use-toast"
-import { createWorkOrder, updateWorkOrder, getNextBrojNaloga } from "@/app/actions/work-orders"
+import { createWorkOrder, updateWorkOrder, getNextBrojNaloga, getNextLotBroj } from "@/app/actions/work-orders"
 import { WorkOrderCard } from "@/components/proizvodnja/WorkOrderCard"
 import { ProcessCard } from "@/components/proizvodnja/ProcessCard"
 import { PakovanjeGrid } from "@/components/proizvodnja/PakovanjeGrid"
 import { EmployeeMultiSelect } from "@/components/proizvodnja/EmployeeMultiSelect"
 import { workOrderSchema, type WorkOrderFormValues, DOBAVLJACI } from "@/lib/proizvodnja/validation"
+import { predlogSmeneIDatuma } from "@/lib/proizvodnja/predlog-smene"
 import { Loader2 } from "lucide-react"
 
 type Employee = { id: string; ime: string; prezime: string }
@@ -81,6 +82,31 @@ export function WorkOrderForm({
       },
     },
   })
+
+  // Predlog smene i datuma po lokalnom vremenu otvaranja forme (samo za novi nalog).
+  // Radi se u useEffect da bi se koristio sat na uređaju, a ne na serveru.
+  useEffect(() => {
+    if (mode !== "create") return
+    const predlog = predlogSmeneIDatuma()
+    if (!initialData?.smena) form.setValue("smena", predlog.smena)
+    if (!initialData?.datum) form.setValue("datum", predlog.datum)
+  }, [mode, initialData?.smena, initialData?.datum, form])
+
+  // Predlog LOT broja (npr. 21N11) za mesec izabranog datuma. Osvežava se kad se datum
+  // promeni, osim ako je korisnik LOT već ručno izmenio.
+  const datumYMD = toYMD(form.watch("datum"))
+  useEffect(() => {
+    if (mode !== "create" || initialData?.pakovanje?.lot_broj) return
+    let otkazano = false
+    getNextLotBroj(datumYMD).then((lot) => {
+      if (otkazano || !lot) return
+      if (form.getFieldState("pakovanje.lot_broj").isDirty) return
+      form.setValue("pakovanje.lot_broj", lot)
+    })
+    return () => {
+      otkazano = true
+    }
+  }, [mode, datumYMD, initialData?.pakovanje?.lot_broj, form])
 
   useEffect(() => {
     if (mode === "create" && !initialData?.broj_naloga) {
@@ -298,7 +324,7 @@ export function WorkOrderForm({
             <Label className="text-[#6B7280]">LOT broj (opciono)</Label>
             <Input
               className="border-[#E5E7EB]"
-              placeholder="npr. LOT-2025-A456"
+              placeholder="npr. 21N11"
               {...form.register("pakovanje.lot_broj")}
             />
           </div>

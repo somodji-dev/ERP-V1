@@ -4,12 +4,45 @@ import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { logAppError } from "@/lib/logger"
 import type { WorkOrderFormValues } from "@/lib/proizvodnja/validation"
+import { sledeciLotBroj } from "@/lib/proizvodnja/lot-broj"
 
 function toDateStr(d: Date): string {
   const y = d.getFullYear()
   const m = String(d.getMonth() + 1).padStart(2, "0")
   const day = String(d.getDate()).padStart(2, "0")
   return `${y}-${m}-${day}`
+}
+
+/**
+ * Predlog LOT broja za datum naloga (YYYY-MM-DD): najveći redni broj LOT-a
+ * među nalozima tog meseca + 1, u formatu NNNMM (npr. 21N11).
+ */
+export async function getNextLotBroj(datumYMD: string): Promise<string | null> {
+  const [y, m] = datumYMD.split("-").map((x) => parseInt(x, 10))
+  if (!y || !m) return null
+  const supabase = await createClient()
+  const od = `${y}-${String(m).padStart(2, "0")}-01`
+  const doDatuma = m === 12 ? `${y + 1}-01-01` : `${y}-${String(m + 1).padStart(2, "0")}-01`
+  const { data: nalozi, error: woError } = await supabase
+    .from("work_orders")
+    .select("id")
+    .gte("datum", od)
+    .lt("datum", doDatuma)
+  if (woError) {
+    logAppError(woError.message, "getNextLotBroj")
+    return null
+  }
+  const ids = (nalozi ?? []).map((n) => n.id as string)
+  if (ids.length === 0) return sledeciLotBroj([], m)
+  const { data: pak, error: pakError } = await supabase
+    .from("pakovanje")
+    .select("lot_broj")
+    .in("work_order_id", ids)
+  if (pakError) {
+    logAppError(pakError.message, "getNextLotBroj")
+    return null
+  }
+  return sledeciLotBroj((pak ?? []).map((p) => p.lot_broj as string | null), m)
 }
 
 /** Format: NN-MM-YY (redni broj u mesecu, mesec, godina); npr. 01-02-25. Sledeći = max(NN) za taj mesec + 1. */
