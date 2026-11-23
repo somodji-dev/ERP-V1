@@ -48,7 +48,7 @@ export function WorkOrderForm({
     defaultValues: {
       broj_naloga: initialData?.broj_naloga ?? "",
       radnici: initialData?.radnici ?? [],
-      datum: initialData?.datum ?? new Date(),
+      datum: initialData?.datum ?? toYMD(new Date()),
       smena: initialData?.smena ?? "I",
       draziranje: {
         radnik_id: initialData?.draziranje?.radnik_id ?? "",
@@ -83,7 +83,7 @@ export function WorkOrderForm({
     const sada = new Date()
     const predlog = predlogSmeneIDatuma(sada)
     if (!initialData?.smena) form.setValue("smena", predlog.smena, { shouldValidate: true })
-    if (!initialData?.datum) form.setValue("datum", predlog.datum, { shouldValidate: true })
+    if (!initialData?.datum) form.setValue("datum", toYMD(predlog.datum), { shouldValidate: true })
     const sat = `${String(sada.getHours()).padStart(2, "0")}:${String(sada.getMinutes()).padStart(2, "0")}`
     setPredlogSmeneTekst(`Predloženo po vremenu unosa (${sat}) — proverite pre čuvanja.`)
   }, [mode, initialData?.smena, initialData?.datum, form])
@@ -100,7 +100,7 @@ export function WorkOrderForm({
   // Predlog LOT broja za izabrani datum i smenu: LOT prethodne smene u mesecu + 1
   // (tako naknadno uneti nalog dobije LOT koji fali), inače najveći + 1.
   // Ne prepisuje LOT koji je korisnik ručno izmenio. Zauzeti brojevi služe za upozorenje.
-  const datumYMD = toYMD(form.watch("datum"))
+  const datumYMD = form.watch("datum")
   const smena = form.watch("smena")
   const [zauzetiLot, setZauzetiLot] = useState<{ mesec: number; brojevi: number[] } | null>(null)
   useEffect(() => {
@@ -183,9 +183,12 @@ export function WorkOrderForm({
             <Input
               type="date"
               className="border-[#E5E7EB]"
-              value={toYMD(form.watch("datum"))}
-              onChange={(e) => form.setValue("datum", new Date(e.target.value), { shouldValidate: true })}
+              value={datumYMD}
+              onChange={(e) => form.setValue("datum", e.target.value, { shouldValidate: true })}
             />
+            {form.formState.errors.datum && (
+              <p className="text-xs text-[#DC2626]">{form.formState.errors.datum.message}</p>
+            )}
           </div>
         </div>
         <div className="mt-5">

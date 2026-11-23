@@ -98,7 +98,7 @@ function toInitialData(nalog: NalogRow): WorkOrderFormValues {
   return {
     broj_naloga: nalog.broj_naloga,
     radnici: radniciIds,
-    datum: new Date(nalog.datum),
+    datum: nalog.datum.slice(0, 10),
     smena: nalog.smena as "I" | "II",
     draziranje: {
       radnik_id: (dr && "radnik_id" in dr ? String(dr.radnik_id) : "") || "",

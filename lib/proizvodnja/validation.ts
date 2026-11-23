@@ -3,10 +3,13 @@
  */
 import { z } from "zod"
 
+/** Kalendarski datum YYYY-MM-DD. Tekst, ne Date: Date pri slanju na server (UTC) postaje prethodni dan. */
+export const DATUM_YMD = /^d{4}-d{2}-d{2}$/
+
 export const workOrderSchema = z.object({
   broj_naloga: z.string().min(1, "Broj naloga je obavezan"),
   radnici: z.array(z.string().uuid()).min(1, "Izaberite bar jednog radnika"),
-  datum: z.date(),
+  datum: z.string().regex(DATUM_YMD, "Izaberite datum"),
   smena: z.enum(["I", "II"]),
 
   draziranje: z.object({

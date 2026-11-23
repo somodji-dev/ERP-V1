@@ -3,18 +3,11 @@
 import { revalidatePath } from "next/cache"
 import { createClient } from "@/lib/supabase/server"
 import { logAppError } from "@/lib/logger"
-import type { WorkOrderFormValues } from "@/lib/proizvodnja/validation"
+import { DATUM_YMD, type WorkOrderFormValues } from "@/lib/proizvodnja/validation"
 import { brojeviNalogaZaMesec, predlogLotaZaSmenu, type NalogZaRedosled } from "@/lib/proizvodnja/redosled-naloga"
 
 type Supabase = Awaited<ReturnType<typeof createClient>>
 type NalogMeseca = NalogZaRedosled & { broj_naloga: string }
-
-function toDateStr(d: Date): string {
-  const y = d.getFullYear()
-  const m = String(d.getMonth() + 1).padStart(2, "0")
-  const day = String(d.getDate()).padStart(2, "0")
-  return `${y}-${m}-${day}`
-}
 
 function godinaMesec(datumYMD: string): { godina: number; mesec: number } | null {
   const [godina, mesec] = datumYMD.split("-").map((x) => parseInt(x, 10))
@@ -140,7 +133,10 @@ export async function getNextBrojNaloga(datumYMD?: string): Promise<string> {
 
 export async function createWorkOrder(data: WorkOrderFormValues): Promise<{ success: true; data: { id: string } } | { success: false; error: string }> {
   const supabase = await createClient()
-  const datumStr = toDateStr(data.datum)
+  const datumStr = data.datum
+  if (typeof datumStr !== "string" || !DATUM_YMD.test(datumStr)) {
+    return { success: false, error: "Neispravan datum. Osvežite stranicu i pokušajte ponovo." }
+  }
   try {
     const { data: workOrder, error: woError } = await supabase
       .from("work_orders")
@@ -222,7 +218,10 @@ export async function updateWorkOrder(
   data: WorkOrderFormValues
 ): Promise<{ success: true } | { success: false; error: string }> {
   const supabase = await createClient()
-  const datumStr = toDateStr(data.datum)
+  const datumStr = data.datum
+  if (typeof datumStr !== "string" || !DATUM_YMD.test(datumStr)) {
+    return { success: false, error: "Neispravan datum. Osvežite stranicu i pokušajte ponovo." }
+  }
   try {
     const { data: stari } = await supabase.from("work_orders").select("datum").eq("id", id).single()
     const stariDatum = (stari as { datum?: string } | null)?.datum
