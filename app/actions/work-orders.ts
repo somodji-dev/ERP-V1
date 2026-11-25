@@ -253,6 +253,12 @@ export async function updateWorkOrder(
       .update({ merenje_tpm: data.przenje.merenje_tpm ?? null, datum: datumStr, smena: data.smena })
       .eq("work_order_id", id)
 
+    const { error: zErr } = await supabase
+      .from("zacinjavane")
+      .update({ datum: datumStr, smena: data.smena })
+      .eq("work_order_id", id)
+    if (zErr) throw zErr
+
     const { error: pakErr } = await supabase
       .from("pakovanje")
       .update({
