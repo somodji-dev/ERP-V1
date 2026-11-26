@@ -21,7 +21,10 @@ export type DashboardKpiProizvodnja = {
 }
 
 export type DashboardKpiRadniNalozi = {
+  /** Prosečna proizvodnja po radnom danu (kg). */
   count: number
+  radnihDana: number
+  prosekPoSmeni: number
   change: { value: number; percentage: number; isPositive: boolean } | null
   mesec: number
   godina: number
@@ -53,6 +56,11 @@ export type DashboardData = {
 
 const MESECI = ["", "Jan", "Feb", "Mar", "Apr", "Maj", "Jun", "Jul", "Avg", "Sep", "Okt", "Nov", "Dec"]
 
+/** Datum kao YYYY-MM-DD po lokalnom vremenu (toISOString bi pomerio ponoć u prethodni dan). */
+function toDateStr(d: Date): string {
+  return format(d, "yyyy-MM-dd")
+}
+
 function firstRow<T>(rel: T[] | T | null | undefined): T | null {
   if (rel == null) return null
   if (Array.isArray(rel)) return rel[0] ?? null
@@ -70,17 +78,16 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   const supabase = await createClient()
 
-  const endChart = endOfMonth(now)
-  const startChart = subDays(startCurrent, 29)
-  const startChartStr = startChart.toISOString().slice(0, 10)
-  const endChartStr = endChart.toISOString().slice(0, 10)
+  // Grafikon: poslednjih 30 dana, zaključno sa danas.
+  const startChartStr = toDateStr(subDays(now, 29))
+  const endChartStr = toDateStr(now)
 
   const [kpiCash, chartRaw, currentMonthOrders, prevMonthOrders, prevPrevMonthOrders, lastOrders, ordersForChart] = await Promise.all([
     getLastSnapshotForKpi(),
     getSnapshotsForChart(24),
-    fetchWorkOrdersInRange(supabase, startCurrent.toISOString().slice(0, 10), endCurrent.toISOString().slice(0, 10)),
-    fetchWorkOrdersInRange(supabase, startPrev.toISOString().slice(0, 10), endPrev.toISOString().slice(0, 10)),
-    fetchWorkOrdersInRange(supabase, startPrevPrev.toISOString().slice(0, 10), endPrevPrev.toISOString().slice(0, 10)),
+    fetchWorkOrdersInRange(supabase, toDateStr(startCurrent), toDateStr(endCurrent)),
+    fetchWorkOrdersInRange(supabase, toDateStr(startPrev), toDateStr(endPrev)),
+    fetchWorkOrdersInRange(supabase, toDateStr(startPrevPrev), toDateStr(endPrevPrev)),
     fetchRecentOrders(supabase, 10),
     fetchWorkOrdersInRangeForChart(supabase, startChartStr, endChartStr),
   ])
@@ -151,13 +158,19 @@ export async function getDashboardData(): Promise<DashboardData> {
         }
       : null
 
-  // Kartica Prosečna dnevna proizvodnja: tekući mesec vs prošli
+  // Kartica Prosečna dnevna proizvodnja: tekući mesec vs prošli.
+  // Deli se brojem radnih dana (dana sa bar jednim nalogom), ne brojem smena.
   const currentKg = currentMonthOrders.reduce((sum, o) => sum + o.ukupnoKg, 0)
-  const shiftsCurrent = Math.max(1, currentMonthOrders.length)
-  const avgCurrent = currentMonthOrders.length > 0 ? Math.round((currentKg / shiftsCurrent) * 10) / 10 : 0
-  const avgPrev = prevMonthOrders.length > 0 ? Math.round((prevKg / shiftsPrev) * 10) / 10 : 0
+  const daysCurrent = new Set(currentMonthOrders.map((o) => o.datum)).size
+  const daysPrev = new Set(prevMonthOrders.map((o) => o.datum)).size
+  const avgCurrent = daysCurrent > 0 ? Math.round((currentKg / daysCurrent) * 10) / 10 : 0
+  const avgPrev = daysPrev > 0 ? Math.round((prevKg / daysPrev) * 10) / 10 : 0
+  const avgPerShiftCurrent =
+    currentMonthOrders.length > 0 ? Math.round(currentKg / currentMonthOrders.length) : 0
   const radniNalozi: DashboardKpiRadniNalozi | null = {
     count: Math.round(avgCurrent),
+    radnihDana: daysCurrent,
+    prosekPoSmeni: avgPerShiftCurrent,
     change:
       avgPrev > 0
         ? {
@@ -407,8 +420,8 @@ export async function getAnalitikaProizvodnja(
   const end = new Date()
   const start = new Date()
   start.setDate(start.getDate() - period)
-  const startStr = start.toISOString().slice(0, 10)
-  const endStr = end.toISOString().slice(0, 10)
+  const startStr = toDateStr(start)
+  const endStr = toDateStr(end)
   const supabase = await createClient()
   let query = supabase
     .from("work_orders")
@@ -549,8 +562,8 @@ export async function getAnalitikaRadniNalozi(
     params.mesec && params.mesec !== "all" ? parseInt(params.mesec, 10) : undefined
   const start = mesec ? new Date(godina, mesec - 1, 1) : new Date(godina, 0, 1)
   const end = mesec ? new Date(godina, mesec, 0) : new Date(godina, 11, 31)
-  const startStr = start.toISOString().slice(0, 10)
-  const endStr = end.toISOString().slice(0, 10)
+  const startStr = toDateStr(start)
+  const endStr = toDateStr(end)
   const daysInPeriod = Math.max(1, Math.ceil((end.getTime() - start.getTime()) / (24 * 60 * 60 * 1000)) + 1)
   const supabase = await createClient()
   let query = supabase

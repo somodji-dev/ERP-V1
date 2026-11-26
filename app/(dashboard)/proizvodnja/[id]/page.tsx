@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { WorkOrderCard } from "@/components/proizvodnja/WorkOrderCard"
 import { ProcessCard } from "@/components/proizvodnja/ProcessCard"
-import { calculateTotalKg, calculateKomadi, formatUkupnoKg } from "@/lib/proizvodnja/calculations"
+import { calculateTotalKg, calculateKomadi, formatUkupnoKg, KUTIJE } from "@/lib/proizvodnja/calculations"
 import { format } from "date-fns"
 import { srLatn } from "date-fns/locale"
 import { ArrowLeft, Pencil, Trash2 } from "lucide-react"
@@ -217,9 +217,9 @@ export default async function ProizvodnjaDetaljPage({ params }: Props) {
                   <ul className="text-sm space-y-1">
                     <li>15kg: {Number((pak as Record<string, unknown>).pikant_15kg ?? 0)} kg</li>
                     <li>1kg: {Number((pak as Record<string, unknown>).pikant_1kg ?? 0)} kg</li>
-                    <li>200g: {Number((pak as Record<string, unknown>).pikant_200g ?? 0)} kutija ({calculateKomadi(Number((pak as Record<string, unknown>).pikant_200g ?? 0), 16)} kom.)</li>
-                    <li>150g: {Number((pak as Record<string, unknown>).pikant_150g ?? 0)} kutija ({calculateKomadi(Number((pak as Record<string, unknown>).pikant_150g ?? 0), 15)} kom.)</li>
-                    <li>80g: {Number((pak as Record<string, unknown>).pikant_80g ?? 0)} kutija ({calculateKomadi(Number((pak as Record<string, unknown>).pikant_80g ?? 0), 36)} kom.)</li>
+                    <li>200g: {Number((pak as Record<string, unknown>).pikant_200g ?? 0)} kutija ({calculateKomadi(Number((pak as Record<string, unknown>).pikant_200g ?? 0), KUTIJE.pikant_200g)} kom.)</li>
+                    <li>150g: {Number((pak as Record<string, unknown>).pikant_150g ?? 0)} kutija ({calculateKomadi(Number((pak as Record<string, unknown>).pikant_150g ?? 0), KUTIJE.pikant_150g)} kom.)</li>
+                    <li>80g: {Number((pak as Record<string, unknown>).pikant_80g ?? 0)} kutija ({calculateKomadi(Number((pak as Record<string, unknown>).pikant_80g ?? 0), KUTIJE.pikant_80g)} kom.)</li>
                     <li className="font-medium pt-2">UKUPNO PIKANT: {formatUkupnoKg(total.pikant)} kg</li>
                   </ul>
                 </div>
@@ -228,9 +228,9 @@ export default async function ProizvodnjaDetaljPage({ params }: Props) {
                   <ul className="text-sm space-y-1">
                     <li>15kg: {Number((pak as Record<string, unknown>).bbq_15kg ?? 0)} kg</li>
                     <li>1kg: {Number((pak as Record<string, unknown>).bbq_1kg ?? 0)} kg</li>
-                    <li>200g: {Number((pak as Record<string, unknown>).bbq_200g ?? 0)} kutija ({calculateKomadi(Number((pak as Record<string, unknown>).bbq_200g ?? 0), 16)} kom.)</li>
-                    <li>150g: {Number((pak as Record<string, unknown>).bbq_150g ?? 0)} kutija ({calculateKomadi(Number((pak as Record<string, unknown>).bbq_150g ?? 0), 15)} kom.)</li>
-                    <li>80g: {Number((pak as Record<string, unknown>).bbq_80g ?? 0)} kutija ({calculateKomadi(Number((pak as Record<string, unknown>).bbq_80g ?? 0), 36)} kom.)</li>
+                    <li>200g: {Number((pak as Record<string, unknown>).bbq_200g ?? 0)} kutija ({calculateKomadi(Number((pak as Record<string, unknown>).bbq_200g ?? 0), KUTIJE.bbq_200g)} kom.)</li>
+                    <li>150g: {Number((pak as Record<string, unknown>).bbq_150g ?? 0)} kutija ({calculateKomadi(Number((pak as Record<string, unknown>).bbq_150g ?? 0), KUTIJE.bbq_150g)} kom.)</li>
+                    <li>80g: {Number((pak as Record<string, unknown>).bbq_80g ?? 0)} kutija ({calculateKomadi(Number((pak as Record<string, unknown>).bbq_80g ?? 0), KUTIJE.bbq_80g)} kom.)</li>
                     <li className="font-medium pt-2">UKUPNO BBQ: {formatUkupnoKg(total.bbq)} kg</li>
                   </ul>
                 </div>

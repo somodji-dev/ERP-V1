@@ -111,7 +111,7 @@ export default async function DashboardPage() {
           value={data.radniNalozi?.count ?? 0}
           valueSuffix=" kg"
           change={data.radniNalozi?.change ?? undefined}
-          subtitle={data.radniNalozi ? `Prosek po smeni — ${MESECI[data.radniNalozi.mesec]} ${data.radniNalozi.godina}` : "Ovaj mesec"}
+          subtitle={data.radniNalozi ? `${MESECI[data.radniNalozi.mesec]} ${data.radniNalozi.godina} — ${data.radniNalozi.radnihDana} radnih dana, prosek ${data.radniNalozi.prosekPoSmeni} kg/smena` : "Ovaj mesec"}
           icon={<ClipboardList className="h-5 w-5" />}
           href="/analitika/radni-nalozi"
         />

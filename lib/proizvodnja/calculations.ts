@@ -15,13 +15,14 @@ export type PakovanjeRow = {
   bbq_80g?: number | null
 }
 
-const KUTIJE = {
+/** Broj komada u jednoj kutiji, po pakovanju. */
+export const KUTIJE = {
   pikant_200g: 16,
   pikant_150g: 15,
-  pikant_80g: 36,
+  pikant_80g: 35,
   bbq_200g: 16,
   bbq_150g: 15,
-  bbq_80g: 36,
+  bbq_80g: 35,
 } as const
 
 export function calculateTotalKg(pakovanje: PakovanjeRow | null | undefined): {
