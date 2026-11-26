@@ -11,11 +11,14 @@ import { CashFlowChartWithRange } from "@/components/cashflow/CashFlowChartWithR
 import { ProductionChart } from "@/components/dashboard/ProductionChart"
 import { RecentOrders } from "@/components/dashboard/RecentOrders"
 import { QuickActions } from "@/components/dashboard/QuickActions"
-import { TrendingUp, Package, ClipboardList } from "lucide-react"
+import { ProductionMonthHeader } from "@/components/dashboard/ProductionMonthHeader"
+import { TrendingUp, Package } from "lucide-react"
 
 const MESECI = ["", "Jan", "Feb", "Mar", "Apr", "Maj", "Jun", "Jul", "Avg", "Sep", "Okt", "Nov", "Dec"]
 
-export default async function DashboardPage() {
+type Props = { searchParams?: { mesec?: string } }
+
+export default async function DashboardPage({ searchParams }: Props) {
   const user = await getCurrentUser()
   if (!user) redirect("/login")
   const permissions = await getUserPermissions(user.id)
@@ -32,10 +35,8 @@ export default async function DashboardPage() {
     )
   }
 
-  const data = await getDashboardData()
-  const dailySorted = data.dailyProductionChart
-  const avgLine =
-    dailySorted.length > 0 ? dailySorted.reduce((s, d) => s + d.ukupno, 0) / dailySorted.length : undefined
+  const data = await getDashboardData(searchParams?.mesec)
+  const avgLine = data.productionMonth.radnihDana > 0 ? data.productionMonth.prosekDnevno : undefined
 
   // Kritične sirovine za dashboard karticu
   const [allMaterials, latestCount] = await Promise.all([
@@ -84,7 +85,7 @@ export default async function DashboardPage() {
         </p>
       </div>
 
-      <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
         <KPICard
           title="Cash Flow Neto"
           value={data.cashFlow?.neto ?? 0}
@@ -106,15 +107,6 @@ export default async function DashboardPage() {
           icon={<Package className="h-5 w-5" />}
           href="/analitika/proizvodnja"
         />
-        <KPICard
-          title="Prosečna dnevna proizvodnja"
-          value={data.radniNalozi?.count ?? 0}
-          valueSuffix=" kg"
-          change={data.radniNalozi?.change ?? undefined}
-          subtitle={data.radniNalozi ? `${MESECI[data.radniNalozi.mesec]} ${data.radniNalozi.godina} — ${data.radniNalozi.radnihDana} radnih dana, prosek ${data.radniNalozi.prosekPoSmeni} kg/smena` : "Ovaj mesec"}
-          icon={<ClipboardList className="h-5 w-5" />}
-          href="/analitika/radni-nalozi"
-        />
       </div>
 
       {/* Kritične sirovine kartica */}
@@ -131,8 +123,7 @@ export default async function DashboardPage() {
           <CashFlowChartWithRange initialData={data.chartCashFlow} />
         </div>
         <div className="rounded-xl border border-[#E5E7EB] bg-white p-6 shadow-sm">
-          <h2 className="mb-4 text-lg font-semibold text-[#111827]">Proizvodnja po danu</h2>
-          <p className="mb-4 text-sm text-[#6B7280]">Poslednjih 30 dana — Pikant + BBQ (kg)</p>
+          <ProductionMonthHeader month={data.productionMonth} />
           <ProductionChart data={data.dailyProductionChart} averageLine={avgLine} />
         </div>
       </div>

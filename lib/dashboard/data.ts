@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/server"
 import { getSnapshotsForChart, getLastSnapshotForKpi } from "@/app/actions/cashflow"
 import { calculateTotalKg } from "@/lib/proizvodnja/calculations"
-import { startOfMonth, endOfMonth, subMonths, subDays, format } from "date-fns"
+import { startOfMonth, endOfMonth, subMonths, format } from "date-fns"
 
 export type DashboardKpiCashFlow = {
   neto: number
@@ -20,14 +20,18 @@ export type DashboardKpiProizvodnja = {
   shiftsInPeriod: number
 }
 
-export type DashboardKpiRadniNalozi = {
-  /** Prosečna proizvodnja po radnom danu (kg). */
-  count: number
-  radnihDana: number
-  prosekPoSmeni: number
-  change: { value: number; percentage: number; isPositive: boolean } | null
-  mesec: number
+/** Mesec prikazan na grafikonu "Proizvodnja po danu", sa prosekom po radnom danu. */
+export type DashboardProductionMonth = {
   godina: number
+  mesec: number
+  /** Prosečna proizvodnja po radnom danu (kg); radni dan = dan sa bar jednim nalogom. */
+  prosekDnevno: number
+  radnihDana: number
+  prosekPrethodni: number | null
+  razlika: { value: number; percentage: number; isPositive: boolean } | null
+  /** YYYY-MM za strelice; next je null za tekući mesec. */
+  prevKey: string
+  nextKey: string | null
 }
 
 export type DailyProductionChartPoint = {
@@ -42,7 +46,7 @@ export type DailyProductionChartPoint = {
 export type DashboardData = {
   cashFlow: DashboardKpiCashFlow | null
   proizvodnja: DashboardKpiProizvodnja | null
-  radniNalozi: DashboardKpiRadniNalozi | null
+  productionMonth: DashboardProductionMonth
   chartCashFlow: Array<{ label: string; cash: number; dugovanja: number; neto: number }>
   dailyProductionChart: DailyProductionChartPoint[]
   recentOrders: Array<{
@@ -67,10 +71,30 @@ function firstRow<T>(rel: T[] | T | null | undefined): T | null {
   return rel
 }
 
-export async function getDashboardData(): Promise<DashboardData> {
+/** "YYYY-MM" → prvi dan meseca; nevažeće ili buduće vrednosti → tekući mesec. */
+function parseMonthKey(key: string | undefined, now: Date): Date {
+  const m = key ? /^(d{4})-(d{2})$/.exec(key) : null
+  const current = startOfMonth(now)
+  if (!m) return current
+  const d = new Date(parseInt(m[1], 10), parseInt(m[2], 10) - 1, 1)
+  if (Number.isNaN(d.getTime()) || d > current) return current
+  return d
+}
+
+function monthKey(d: Date): string {
+  return format(d, "yyyy-MM")
+}
+
+function prosekPoRadnomDanu(orders: Array<{ datum: string; ukupnoKg: number }>): { prosek: number; dana: number } {
+  const dana = new Set(orders.map((o) => o.datum)).size
+  const kg = orders.reduce((sum, o) => sum + o.ukupnoKg, 0)
+  return { prosek: dana > 0 ? Math.round(kg / dana) : 0, dana }
+}
+
+/** chartMonth: "YYYY-MM" za grafikon proizvodnje po danu (podrazumevano tekući mesec). */
+export async function getDashboardData(chartMonth?: string): Promise<DashboardData> {
   const now = new Date()
   const startCurrent = startOfMonth(now)
-  const endCurrent = endOfMonth(now)
   const startPrev = startOfMonth(subMonths(now, 1))
   const endPrev = endOfMonth(subMonths(now, 1))
   const startPrevPrev = startOfMonth(subMonths(now, 2))
@@ -78,18 +102,19 @@ export async function getDashboardData(): Promise<DashboardData> {
 
   const supabase = await createClient()
 
-  // Grafikon: poslednjih 30 dana, zaključno sa danas.
-  const startChartStr = toDateStr(subDays(now, 29))
-  const endChartStr = toDateStr(now)
+  // Grafikon: izabrani mesec, dan po dan.
+  const chartStart = parseMonthKey(chartMonth, now)
+  const chartPrevStart = startOfMonth(subMonths(chartStart, 1))
+  const isCurrentMonth = chartStart.getTime() === startCurrent.getTime()
 
-  const [kpiCash, chartRaw, currentMonthOrders, prevMonthOrders, prevPrevMonthOrders, lastOrders, ordersForChart] = await Promise.all([
+  const [kpiCash, chartRaw, chartPrevMonthOrders, prevMonthOrders, prevPrevMonthOrders, lastOrders, ordersForChart] = await Promise.all([
     getLastSnapshotForKpi(),
     getSnapshotsForChart(24),
-    fetchWorkOrdersInRange(supabase, toDateStr(startCurrent), toDateStr(endCurrent)),
+    fetchWorkOrdersInRange(supabase, toDateStr(chartPrevStart), toDateStr(endOfMonth(chartPrevStart))),
     fetchWorkOrdersInRange(supabase, toDateStr(startPrev), toDateStr(endPrev)),
     fetchWorkOrdersInRange(supabase, toDateStr(startPrevPrev), toDateStr(endPrevPrev)),
     fetchRecentOrders(supabase, 10),
-    fetchWorkOrdersInRangeForChart(supabase, startChartStr, endChartStr),
+    fetchWorkOrdersInRangeForChart(supabase, toDateStr(chartStart), toDateStr(endOfMonth(chartStart))),
   ])
 
   const chartCashFlow = chartRaw.slice(-12).map((s) => ({
@@ -158,29 +183,25 @@ export async function getDashboardData(): Promise<DashboardData> {
         }
       : null
 
-  // Kartica Prosečna dnevna proizvodnja: tekući mesec vs prošli.
-  // Deli se brojem radnih dana (dana sa bar jednim nalogom), ne brojem smena.
-  const currentKg = currentMonthOrders.reduce((sum, o) => sum + o.ukupnoKg, 0)
-  const daysCurrent = new Set(currentMonthOrders.map((o) => o.datum)).size
-  const daysPrev = new Set(prevMonthOrders.map((o) => o.datum)).size
-  const avgCurrent = daysCurrent > 0 ? Math.round((currentKg / daysCurrent) * 10) / 10 : 0
-  const avgPrev = daysPrev > 0 ? Math.round((prevKg / daysPrev) * 10) / 10 : 0
-  const avgPerShiftCurrent =
-    currentMonthOrders.length > 0 ? Math.round(currentKg / currentMonthOrders.length) : 0
-  const radniNalozi: DashboardKpiRadniNalozi | null = {
-    count: Math.round(avgCurrent),
-    radnihDana: daysCurrent,
-    prosekPoSmeni: avgPerShiftCurrent,
-    change:
-      avgPrev > 0
+  // Prosek po radnom danu za mesec na grafikonu, u odnosu na mesec pre njega.
+  const ovaj = prosekPoRadnomDanu(ordersForChart.map((o) => ({ datum: o.datum, ukupnoKg: o.ukupno })))
+  const pre = prosekPoRadnomDanu(chartPrevMonthOrders)
+  const productionMonth: DashboardProductionMonth = {
+    godina: chartStart.getFullYear(),
+    mesec: chartStart.getMonth() + 1,
+    prosekDnevno: ovaj.prosek,
+    radnihDana: ovaj.dana,
+    prosekPrethodni: pre.dana > 0 ? pre.prosek : null,
+    razlika:
+      pre.dana > 0 && pre.prosek > 0 && ovaj.dana > 0
         ? {
-            value: Math.round(avgCurrent - avgPrev),
-            percentage: Math.round(((avgCurrent - avgPrev) / avgPrev) * 100),
-            isPositive: avgCurrent >= avgPrev,
+            value: ovaj.prosek - pre.prosek,
+            percentage: Math.round(((ovaj.prosek - pre.prosek) / pre.prosek) * 100),
+            isPositive: ovaj.prosek >= pre.prosek,
           }
         : null,
-    mesec: now.getMonth() + 1,
-    godina: now.getFullYear(),
+    prevKey: monthKey(chartPrevStart),
+    nextKey: isCurrentMonth ? null : monthKey(startOfMonth(subMonths(chartStart, -1))),
   }
 
   const dailyMap = new Map<string, { pikant: number; bbq: number; ukupno: number; count: number }>()
@@ -210,7 +231,7 @@ export async function getDashboardData(): Promise<DashboardData> {
   return {
     cashFlow,
     proizvodnja,
-    radniNalozi,
+    productionMonth,
     chartCashFlow,
     dailyProductionChart,
     recentOrders: lastOrders,

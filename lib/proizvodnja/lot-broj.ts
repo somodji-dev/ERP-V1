@@ -28,3 +28,13 @@ export function sledeciLotBroj(postojeci: (string | null | undefined)[], mesec: 
   }
   return formatLotBroj(max + 1, mesec)
 }
+
+/**
+ * Ujednačen zapis LOT-a pri čuvanju (npr. "8n11", "07n011", "22NO11" → "08N11", "07N11", "22N11").
+ * Ako zapis nije prepoznat, vraća se kako je unet (bez razmaka).
+ */
+export function normalizujLotBroj(lot: string | null | undefined): string | null {
+  if (!lot || !lot.trim()) return null
+  const p = parseLotBroj(lot)
+  return p ? formatLotBroj(p.redni, p.mesec) : lot.trim()
+}

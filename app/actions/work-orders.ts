@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server"
 import { logAppError } from "@/lib/logger"
 import { DATUM_YMD, type WorkOrderFormValues } from "@/lib/proizvodnja/validation"
 import { brojeviNalogaZaMesec, predlogLotaZaSmenu, type NalogZaRedosled } from "@/lib/proizvodnja/redosled-naloga"
+import { normalizujLotBroj } from "@/lib/proizvodnja/lot-broj"
 
 type Supabase = Awaited<ReturnType<typeof createClient>>
 type NalogMeseca = NalogZaRedosled & { broj_naloga: string }
@@ -196,7 +197,7 @@ export async function createWorkOrder(data: WorkOrderFormValues): Promise<{ succ
       bbq_200g: data.pakovanje.bbq_200g,
       bbq_150g: data.pakovanje.bbq_150g,
       bbq_80g: data.pakovanje.bbq_80g,
-      lot_broj: data.pakovanje.lot_broj || null,
+      lot_broj: normalizujLotBroj(data.pakovanje.lot_broj),
       datum: datumStr,
       smena: data.smena,
     })
@@ -273,7 +274,7 @@ export async function updateWorkOrder(
         bbq_200g: data.pakovanje.bbq_200g,
         bbq_150g: data.pakovanje.bbq_150g,
         bbq_80g: data.pakovanje.bbq_80g,
-        lot_broj: data.pakovanje.lot_broj || null,
+        lot_broj: normalizujLotBroj(data.pakovanje.lot_broj),
         datum: datumStr,
         smena: data.smena,
       })
